@@ -1,0 +1,25 @@
+{
+  "name": "ukg-schedule-sync",
+  "type": "module",
+  "scripts": {
+    "tsc": "tsc",
+    "prettier": "prettier . --check",
+    "prettier:fix": "prettier . --write",
+    "eslint": "eslint . --max-warnings=0",
+    "eslint:fix": "npm run eslint -- --fix",
+    "lint": "npm run prettier && npm run tsc && npm run eslint",
+    "lint:fix": "npm run prettier:fix && npm run eslint:fix"
+  },
+  "devDependencies": {
+    "@eslint/compat": "^1.3.2",
+    "@eslint/js": "^9.34.0",
+    "@types/node": "^24.3.0",
+    "chrome-types": "^0.1.373",
+    "eslint": "^9.34.0",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-unicorn": "^60.0.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.41.0"
+  }
+}
