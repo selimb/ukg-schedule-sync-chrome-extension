@@ -18,7 +18,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://*.mykronos.com"],
+      "matches": ["https://*.mykronos.com/ess"],
       "js": ["dist/scripts/content.js"]
     }
   ]
