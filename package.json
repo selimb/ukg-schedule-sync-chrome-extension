@@ -2,6 +2,8 @@
   "name": "ukg-schedule-sync",
   "type": "module",
   "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
     "tsc": "tsc",
     "prettier": "prettier . --check",
     "prettier:fix": "prettier . --write",
@@ -20,6 +22,7 @@
     "eslint-plugin-unicorn": "^60.0.0",
     "prettier": "^3.6.2",
     "typescript": "^5.9.2",
-    "typescript-eslint": "^8.41.0"
+    "typescript-eslint": "^8.41.0",
+    "vite": "^7.1.3"
   }
 }

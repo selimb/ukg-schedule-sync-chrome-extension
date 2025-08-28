@@ -15,5 +15,11 @@
     "32": "assets/ukg.png",
     "48": "assets/ukg.png",
     "128": "assets/ukg.png"
-  }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.mykronos.com"],
+      "js": ["dist/scripts/content.js"]
+    }
+  ]
 }
