@@ -1,0 +1,19 @@
+{
+  "name": "UKG Schedule Sync",
+  "version": "1.0",
+  "manifest_version": 3,
+  "action": {
+    "default_icon": {
+      "16": "assets/ukg.png",
+      "24": "assets/ukg.png",
+      "32": "assets/ukg.png"
+    }
+  },
+  "icons": {
+    "16": "assets/ukg.png",
+    "24": "assets/ukg.png",
+    "32": "assets/ukg.png",
+    "48": "assets/ukg.png",
+    "128": "assets/ukg.png"
+  }
+}
