@@ -8,7 +8,7 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
     lib: {
-      entry: ["src/scripts/content.ts"],
+      entry: ["src/content-script.ts", "src/worker.ts"],
       formats: ["es"],
     },
     rollupOptions: {

@@ -10,6 +10,9 @@
     // Output
     "noEmit": true,
 
+    // Types
+    "types": ["chrome-types"],
+
     // Vanilla JS
     "checkJs": true,
     "allowJs": true,

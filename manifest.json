@@ -2,6 +2,8 @@
   "name": "UKG Schedule Sync",
   "version": "1.0",
   "manifest_version": 3,
+  "host_permissions": ["https://www.googleapis.com/*"],
+  "permissions": ["identity", "storage"],
   "action": {
     "default_icon": {
       "16": "assets/ukg.png",
@@ -9,17 +11,21 @@
       "32": "assets/ukg.png"
     }
   },
+  "content_scripts": [
+    {
+      "matches": ["https://*.mykronos.com/ess"],
+      "js": ["dist/content-script.js"]
+    }
+  ],
+  "background": {
+    "service_worker": "dist/worker.js",
+    "type": "module"
+  },
   "icons": {
     "16": "assets/ukg.png",
     "24": "assets/ukg.png",
     "32": "assets/ukg.png",
     "48": "assets/ukg.png",
     "128": "assets/ukg.png"
-  },
-  "content_scripts": [
-    {
-      "matches": ["https://*.mykronos.com/ess"],
-      "js": ["dist/scripts/content.js"]
-    }
-  ]
+  }
 }
