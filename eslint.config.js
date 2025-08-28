@@ -107,6 +107,8 @@ export default defineConfig(
       "unicorn/prefer-dom-node-dataset": "off",
       // Too many false positives: https://github.com/sindresorhus/eslint-plugin-unicorn/issues/2149
       "unicorn/prefer-top-level-await": "off",
+      // Mid.
+      "unicorn/prefer-query-selector": "off",
       "unicorn/template-indent": [
         "warn",
         {

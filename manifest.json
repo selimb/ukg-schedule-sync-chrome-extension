@@ -21,6 +21,7 @@
     "service_worker": "dist/worker.js",
     "type": "module"
   },
+  "options_page": "assets/options.html",
   "icons": {
     "16": "assets/ukg.png",
     "24": "assets/ukg.png",

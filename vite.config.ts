@@ -1,6 +1,8 @@
+import preact from "@preact/preset-vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
+  plugins: [preact()],
   build: {
     minify: false,
     cssMinify: false,
@@ -8,7 +10,11 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
     lib: {
-      entry: ["src/content-script.ts", "src/worker.ts"],
+      entry: [
+        "src/content-script.ts",
+        "src/worker.ts",
+        "src/options/index.tsx",
+      ],
       formats: ["es"],
     },
     rollupOptions: {
