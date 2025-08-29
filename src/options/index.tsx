@@ -1,7 +1,7 @@
 import { Component, type ComponentChildren, render } from "preact";
 
+import { AuthForm } from "./auth-form";
 import { DebugForm } from "./debug-form";
-import { GoogleForm } from "./google-form";
 
 class App extends Component {
   state: { error?: unknown } = { error: undefined };
@@ -18,8 +18,8 @@ class App extends Component {
 
     return (
       <main>
-        <h1>Google</h1>
-        <GoogleForm />
+        <h1>Authentication</h1>
+        <AuthForm />
         <h1>Debug</h1>
         <DebugForm />
       </main>

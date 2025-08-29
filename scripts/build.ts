@@ -7,7 +7,7 @@ const SRC_DIR = "src";
 const DIST_DIR = "dist";
 const ENTRYPOINTS = {
   "src/worker.ts": "worker",
-  "src/content-script.ts": "content-script",
+  "src/content-script/index.ts": "content-script",
   "src/options/index.tsx": "options",
 };
 

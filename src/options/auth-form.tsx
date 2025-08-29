@@ -24,10 +24,10 @@ type TokenState =
 
 const TOKEN_STATE_DEFAULT: TokenState = { state: "idle" };
 
-export const GoogleForm: FC = () => {
+export const AuthForm: FC = () => {
   const [token, setToken] = useState<TokenState>(TOKEN_STATE_DEFAULT);
 
-  const auth = async (): Promise<void> => {
+  const getNewToken = async (): Promise<void> => {
     setToken({ state: "loading" });
     try {
       const token = await chrome.identity.getAuthToken({ interactive: true });
@@ -43,7 +43,7 @@ export const GoogleForm: FC = () => {
         type="button"
         disabled={token.state === "loading"}
         onClick={() => {
-          void auth();
+          void getNewToken();
         }}
       >
         Check

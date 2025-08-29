@@ -2,12 +2,12 @@
 import * as z from "zod/mini";
 
 const STORAGE = chrome.storage.local;
+const KEY = "settings";
 
 const zDebug = z.boolean();
 type Debug = z.infer<typeof zDebug>;
 
 const DEFAULT_DEBUG = false;
-const KEY = "settings";
 
 let CURR: Debug = DEFAULT_DEBUG;
 
