@@ -5,22 +5,18 @@ import { extractSchedule } from "../parser";
 import { debug } from "../storage/debug";
 import type { Schedule } from "../types";
 import { waitFor } from "../utils/wait-for";
-import { ExtensionBadge } from "./badge";
+import { renderBadge } from "./badge";
 import { DateDisplay } from "./date-display";
 import { DateDisplayObserver, DocumentObserver } from "./observers";
 
 type State = {
   dateDisplay: DateDisplay | undefined;
   documentObserver: DocumentObserver | undefined;
-  dateDisplayObserver: DateDisplayObserver | undefined;
-  extensionBadge: ExtensionBadge | undefined;
 };
 
 let STATE: State = {
   dateDisplay: undefined,
   documentObserver: undefined,
-  dateDisplayObserver: undefined,
-  extensionBadge: undefined,
 };
 
 async function waitSchedule(): Promise<Schedule | undefined> {
@@ -53,35 +49,26 @@ async function update(dateDisplay?: DateDisplay): Promise<void> {
 
     STATE = {
       dateDisplay: undefined,
-      dateDisplayObserver: undefined,
-      extensionBadge: undefined,
       documentObserver,
     };
 
     return;
   }
 
-  // XXX Show indicator when auth is required.
-  const extensionBadge = ExtensionBadge.insert(dateDisplay);
-  // XXX: Handle.
-  const schedule = await waitSchedule();
-
-  const dateDisplayObserver = new DateDisplayObserver(dateDisplay, {
-    onChange: () => {
-      extensionBadge.update(dateDisplay);
-      // XXX: Handle.
-      void waitSchedule();
-    },
+  const dateDisplayObserver = new DateDisplayObserver(dateDisplay);
+  dateDisplayObserver.addListener({
     onRemove: () => {
-      extensionBadge.destroy();
       void update();
     },
   });
 
+  renderBadge(dateDisplay, dateDisplayObserver);
+
+  // XXX: Handle.
+  const schedule = await waitSchedule();
+
   STATE = {
     dateDisplay,
-    dateDisplayObserver,
-    extensionBadge,
     documentObserver: undefined,
   };
 }

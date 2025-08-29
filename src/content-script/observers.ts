@@ -2,35 +2,41 @@ import { log } from "../logger";
 import { DateDisplay } from "./date-display";
 
 type DateDisplayObserverListeners = {
-  onChange: () => void;
-  onRemove: () => void;
+  onChange?: () => void;
+  onRemove?: () => void;
 };
 
 /** Watches for updates to a {@link DateDisplay}'s `textContent`, or for deletion of the node. */
 export class DateDisplayObserver {
   private readonly observer: MutationObserver;
+  private readonly listeners: DateDisplayObserverListeners[] = [];
 
-  constructor(
-    dateDisplay: DateDisplay,
-    listeners: DateDisplayObserverListeners,
-  ) {
+  constructor(dateDisplay: DateDisplay) {
     const element = dateDisplay.$element;
     const observer = new MutationObserver((mutations, observer) => {
       for (const mutation of mutations) {
         if ([...mutation.removedNodes].includes(element)) {
           log("info", "(DateDisplayObserver)", "Date display removed");
-          listeners.onRemove();
+          for (const listener of this.listeners) {
+            listener.onRemove?.();
+          }
           observer.disconnect();
           return;
         }
       }
-      listeners.onChange();
+      for (const listener of this.listeners) {
+        listener.onChange?.();
+      }
     });
     observer.observe(element, {
       subtree: true,
       childList: true,
     });
     this.observer = observer;
+  }
+
+  addListener(listener: DateDisplayObserverListeners): void {
+    this.listeners.push(listener);
   }
 }
 
