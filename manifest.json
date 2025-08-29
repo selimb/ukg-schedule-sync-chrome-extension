@@ -25,7 +25,7 @@
   "options_page": "assets/options.html",
   "oauth2": {
     "client_id": "357899292691-rlf59ddeucr19s4dl3lc5o05j5c7vvv1.apps.googleusercontent.com",
-    "scopes": [""]
+    "scopes": ["https://www.googleapis.com/auth/calendar.calendarlist.readonly"]
   },
   "icons": {
     "16": "assets/ukg.png",
