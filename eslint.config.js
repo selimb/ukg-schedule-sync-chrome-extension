@@ -95,8 +95,6 @@ export default defineConfig(
       "unicorn/no-await-expression-member": "off",
       // Weird rule.
       "unicorn/no-keyword-prefix": "off",
-      // Allow both null and undefined.
-      "unicorn/no-null": "off",
       // Ridiculous.
       "unicorn/prevent-abbreviations": "off",
       // We're only building for browsers. window is fine.

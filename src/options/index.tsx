@@ -1,8 +1,15 @@
 import { render } from "preact";
 import type { FC } from "preact/compat";
 
+import { DebugForm } from "./debug-form";
+
 const App: FC = () => {
-  return <div>Options Page</div>;
+  return (
+    <main>
+      <h1>Debug</h1>
+      <DebugForm />
+    </main>
+  );
 };
 
 const container = document.getElementById("root");

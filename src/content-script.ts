@@ -1,9 +1,10 @@
 /** Entrypoint for the Chrome content_script. */
 
-/** */
-function log(...args: unknown[]): void {
-  console.debug("[ukg-schedule-sync]", ...args);
-}
+import { log } from "./logger";
+import { extractSchedule } from "./parser";
+import { debug } from "./storage/debug";
+import type { Schedule } from "./types";
+import { waitFor } from "./utils/wait-for";
 
 /** Wraps the date display element. */
 class DateDisplay {
@@ -14,7 +15,6 @@ class DateDisplay {
   }
 
   static find(): DateDisplay | undefined {
-    // eslint-disable-next-line unicorn/prefer-query-selector -- Hush.
     const $elem = document.getElementById("myschedule.dateDisplay");
     return $elem ? new DateDisplay($elem) : undefined;
   }
@@ -43,7 +43,7 @@ class DateDisplayObserver {
     const observer = new MutationObserver((mutations, observer) => {
       for (const mutation of mutations) {
         if ([...mutation.removedNodes].includes(element)) {
-          log("(DateDisplayObserver)", "Date display removed");
+          log("info", "(DateDisplayObserver)", "Date display removed");
           listeners.onRemove();
           observer.disconnect();
           return;
@@ -91,7 +91,12 @@ class DocumentObserver {
     const observer = new MutationObserver((_mutations, observer) => {
       const dateDisplay = DateDisplay.find();
       if (dateDisplay) {
-        log("(DocumentObserver)", "Found date display:", dateDisplay.$element);
+        log(
+          "info",
+          "(DocumentObserver)",
+          "Found date display:",
+          dateDisplay.$element,
+        );
         onFound(dateDisplay);
         observer.disconnect();
       }
@@ -99,93 +104,6 @@ class DocumentObserver {
     observer.observe(document, { subtree: true, childList: true });
     this.observer = observer;
   }
-}
-
-type ScheduleItem = {
-  id: string;
-  start: Date;
-  end: Date;
-};
-
-type Schedule = ScheduleItem[];
-
-function parseDatetimes(
-  dateText: string,
-  timeText: string,
-): { start: Date; end: Date } | undefined {
-  const [startText, endText] = timeText.split(" - ").map((s) => s.trim());
-  if (!startText || !endText) {
-    return undefined;
-  }
-
-  const startDate = new Date(`${dateText} ${startText}`);
-  const endDate = new Date(`${dateText} ${endText}`);
-  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-    return undefined;
-  }
-
-  if (endDate.getHours() === 0 && endDate.getMinutes() === 0) {
-    endDate.setDate(endDate.getDate() + 1);
-  }
-
-  return { start: startDate, end: endDate };
-}
-
-function querySchedule(): Schedule {
-  const $scheduleRoot = document.querySelector("krn-calendar");
-  if (!$scheduleRoot) {
-    log("No schedule root found.");
-    return [];
-  }
-
-  const schedule: Schedule = [];
-  for (const $event of $scheduleRoot.querySelectorAll("a.krn-calendar-event")) {
-    // XXX
-    log("$event:", $event);
-    const id = $event.id;
-    if (!id) {
-      // XXX
-      log("no id");
-      continue;
-    }
-
-    const date = $event.getAttribute("data-date");
-    if (!date) {
-      // XXX
-      log("no date");
-      continue;
-    }
-
-    const $time = $event.querySelector(".fc-time");
-    if (!$time) {
-      // XXX
-      log("no time element");
-      continue;
-    }
-
-    const timeText = $time.textContent;
-    if (!timeText) {
-      // XXX
-      log("no time text");
-      continue;
-    }
-
-    const datetimes = parseDatetimes(date, timeText);
-    if (!datetimes) {
-      // XXX
-      log("could not parse datetimes");
-      continue;
-    }
-
-    schedule.push({
-      id,
-      start: datetimes.start,
-      end: datetimes.end,
-    });
-  }
-
-  log("schedule:", schedule);
-  return schedule;
 }
 
 type State = {
@@ -202,12 +120,32 @@ let STATE: State = {
   extensionBadge: undefined,
 };
 
-function update(dateDisplay?: DateDisplay): void {
+async function waitSchedule(): Promise<Schedule | undefined> {
+  const schedule = await waitFor(
+    () => {
+      const schedule = extractSchedule();
+      return schedule.length > 0 ? schedule : undefined;
+    },
+    { intervalMs: 100, abort: AbortSignal.timeout(5000) },
+  );
+  if (schedule) {
+    if (debug.get()) {
+      log("debug", `Extracted ${schedule.length} schedule items:`, schedule);
+    } else {
+      log("info", `Extracted ${schedule.length} schedule items.`);
+    }
+  } else {
+    log("warn", "No schedule found.");
+  }
+  return schedule;
+}
+
+async function update(dateDisplay?: DateDisplay): Promise<void> {
   dateDisplay = dateDisplay ?? DateDisplay.find();
 
   if (!dateDisplay) {
     const documentObserver = new DocumentObserver((dateDisplay) => {
-      update(dateDisplay);
+      void update(dateDisplay);
     });
 
     STATE = {
@@ -221,16 +159,18 @@ function update(dateDisplay?: DateDisplay): void {
   }
 
   const extensionBadge = ExtensionBadge.insert(dateDisplay);
-  querySchedule();
+  // XXX: Handle.
+  const schedule = await waitSchedule();
 
   const dateDisplayObserver = new DateDisplayObserver(dateDisplay, {
     onChange: () => {
       extensionBadge.update(dateDisplay);
-      querySchedule();
+      // XXX: Handle.
+      void waitSchedule();
     },
     onRemove: () => {
       extensionBadge.destroy();
-      update();
+      void update();
     },
   });
 
@@ -243,7 +183,7 @@ function update(dateDisplay?: DateDisplay): void {
 }
 
 function main(): void {
-  update();
+  void update();
 }
 
 main();
