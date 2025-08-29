@@ -36,15 +36,21 @@ async function build(): Promise<void> {
   const outputs: string[][] = [];
 
   for (const [src, dst] of Object.entries(ENTRYPOINTS)) {
-    const result = await Bun.build({
-      entrypoints: [src],
-      outdir: DIST_DIR,
-      target: "browser",
-      naming: `[dir]/${dst}.[ext]`,
-      splitting: false,
-      sourcemap: true,
-      minify: false,
-    });
+    try {
+      var result = await Bun.build({
+        entrypoints: [src],
+        outdir: DIST_DIR,
+        target: "browser",
+        naming: `[dir]/${dst}.[ext]`,
+        splitting: false,
+        sourcemap: true,
+        minify: false,
+      });
+    } catch (error) {
+      // eslint-disable-next-line no-console -- Hush.
+      console.error(error);
+      return;
+    }
 
     for (const o of result.outputs) {
       const relpath = path.relative(process.cwd(), o.path);
