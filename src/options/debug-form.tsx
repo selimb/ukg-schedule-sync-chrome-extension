@@ -3,7 +3,7 @@ import { type FC, useSyncExternalStore } from "preact/compat";
 import { debug } from "../storage/debug";
 
 export const DebugForm: FC = () => {
-  const debugValue = useSyncExternalStore(debug.sub, debug.get);
+  const debugValue = useSyncExternalStore(debug.listen, debug.get);
 
   return (
     <form>

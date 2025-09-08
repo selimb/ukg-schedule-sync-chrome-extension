@@ -11,9 +11,9 @@ export class DateDisplay {
     return $elem ? new DateDisplay($elem) : undefined;
   }
 
-  getMonth(): string | undefined {
+  getMonth = (): string | undefined => {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- False positive...
     const text = this.$element.textContent?.trim();
     return text || undefined;
-  }
+  };
 }

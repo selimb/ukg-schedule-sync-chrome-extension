@@ -28,10 +28,10 @@ function watch(): void {
   });
 
   STORAGE.onChanged.addListener((changes) => {
-    const raw: unknown = changes[KEY].newValue;
-    if (raw === undefined) {
+    if (!(KEY in changes)) {
       return;
     }
+    const raw: unknown = changes[KEY].newValue;
     const value = zDebug.safeParse(raw);
     if (value.success) {
       CURR = value.data;
@@ -39,6 +39,7 @@ function watch(): void {
         listener();
       }
     }
+    // TODO: Error-handling?
   });
 }
 
@@ -51,7 +52,7 @@ export const debug = {
   set: async (value: Debug): Promise<void> => {
     await STORAGE.set({ [KEY]: value });
   },
-  sub: (listener: Listener): (() => void) => {
+  listen: (listener: Listener): (() => void) => {
     LISTENERS.add(listener);
     return () => {
       LISTENERS.delete(listener);

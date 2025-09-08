@@ -1,7 +1,10 @@
 import { Component, type ComponentChildren, render } from "preact";
 
+import { setEnvironment } from "../env";
 import { AuthForm } from "./auth-form";
 import { DebugForm } from "./debug-form";
+
+setEnvironment("options");
 
 class App extends Component {
   state: { error?: unknown } = { error: undefined };

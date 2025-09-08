@@ -1,5 +1,5 @@
 import { render } from "preact";
-import { type FC, useEffect, useState } from "preact/compat";
+import { type FC, useSyncExternalStore } from "preact/compat";
 
 import { DateDisplay } from "./date-display";
 import { DateDisplayObserver } from "./observers";
@@ -9,17 +9,11 @@ export const Badge: FC<{
   dateDisplay: DateDisplay;
   dateDisplayObserver: DateDisplayObserver;
 }> = ({ dateDisplay, dateDisplayObserver }) => {
-  const [month, setMonth] = useState<string | undefined>(() =>
-    dateDisplay.getMonth(),
+  const month = useSyncExternalStore(
+    dateDisplayObserver.listenChange,
+    dateDisplay.getMonth,
   );
 
-  useEffect(() => {
-    dateDisplayObserver.addListener({
-      onChange: () => {
-        setMonth(dateDisplay.getMonth());
-      },
-    });
-  }, [dateDisplayObserver, dateDisplay]);
   return <span>🍪 {month}</span>;
 };
 
@@ -42,10 +36,8 @@ export function renderBadge(
     $root,
   );
 
-  dateDisplayObserver.addListener({
-    onRemove: () => {
-      render(undefined, $root);
-      $root.remove();
-    },
+  dateDisplayObserver.listenRemove(() => {
+    render(undefined, $root);
+    $root.remove();
   });
 }

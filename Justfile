@@ -7,3 +7,6 @@ dev:
 zip: build
     rm -rf *.zip
     zip -r ukg-schedule-sync.zip manifest.json dist assets
+
+lint:
+    bun run lint

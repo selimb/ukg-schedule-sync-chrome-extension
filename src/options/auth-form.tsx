@@ -1,5 +1,7 @@
 import { type FC, useState } from "preact/compat";
 
+type CachedTokenState = {};
+
 type TokenState =
   | {
       state: "idle";

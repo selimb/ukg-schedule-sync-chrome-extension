@@ -1,8 +1,8 @@
 /**
  * DOM parsing utilities.
  */
-import { log } from "./logger";
-import type { NaiveDate, NaiveTime, Schedule, ScheduleItem } from "./types";
+import { log } from "../logger";
+import type { NaiveDate, NaiveTime, Schedule, ScheduleItem } from "../types";
 
 /**
  * Extracts a schedule from the DOM.
