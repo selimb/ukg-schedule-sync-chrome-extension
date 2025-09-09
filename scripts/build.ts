@@ -29,6 +29,53 @@ function tabulate(rows: string[][]): string {
     .join("\n");
 }
 
+async function patchCss(input: string, output: string): Promise<void> {
+  const text = await fs.readFile(input, "utf8");
+  const lines = text.split("\n");
+  const linesIter = lines[Symbol.iterator]();
+  const outputLines: typeof lines = [];
+
+  const properties: string[] = [];
+
+  while (true) {
+    const r = linesIter.next();
+    if (r.done) {
+      break;
+    }
+    const line = r.value;
+    if (line.includes("@property")) {
+      const propertyName = line.split(" ")[1];
+
+      // Rewrite @property
+      while (true) {
+        const r = linesIter.next();
+        if (r.done) {
+          break;
+        }
+        const line = r.value.trim();
+        if (line.startsWith("initial-value")) {
+          const propertyValue = line.split(":")[1].trim().replace(";", "");
+          properties.push(`${propertyName}: ${propertyValue};`);
+        } else if (line.trim() === "}") {
+          break;
+        }
+      }
+    } else {
+      outputLines.push(line);
+    }
+  }
+
+  outputLines.push(
+    "@layer theme {",
+    "  :root, :host {",
+    ...properties.map((line) => "    " + line),
+    "  }",
+    "}",
+  );
+
+  await fs.writeFile(output, outputLines.join("\n"), "utf8");
+}
+
 async function build(): Promise<void> {
   // eslint-disable-next-line no-console -- Hush.
   console.info("building...");
@@ -64,13 +111,15 @@ async function build(): Promise<void> {
   // tailwind
   {
     const input = "src/content-script/content-script.css";
+    const outputTemp = "tmp/content-script.css";
     const output = "dist/content-script.css";
     try {
-      await $`node_modules/.bin/tailwindcss -i ${input} -o ${output}`.quiet();
+      await $`node_modules/.bin/tailwindcss -i ${input} -o ${outputTemp}`.quiet();
     } catch (error) {
       console.error(error);
       return;
     }
+    await patchCss(outputTemp, output);
     const size = (await fs.stat(output)).size / 1024;
     outputs.push([output, size.toFixed(2), "KB"]);
   }

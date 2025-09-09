@@ -1,7 +1,7 @@
 import * as z from "zod/mini";
 
+import type { AuthInfo } from "./auth-manager";
 import { log } from "./logger";
-import type { AuthToken } from "./storage/auth";
 
 type MessageType = string;
 type IMessage = Record<string, unknown> | undefined;
@@ -48,9 +48,11 @@ function mkChannel<I extends IMessage, O extends IMessage>(
         type: msgType,
         data: message,
       };
+      log("debug", "channel.send", msgType, message);
       const responseEnvelope = (await chrome.runtime.sendMessage(
         envelope,
       )) as ChannelResponseEnvelope<O>;
+      log("debug", "channel.recv", msgType, responseEnvelope);
       if (!responseEnvelope.success) {
         throw new Error(responseEnvelope.error);
       }
@@ -60,10 +62,8 @@ function mkChannel<I extends IMessage, O extends IMessage>(
 }
 
 export const channels = {
-  checkAuthToken: mkChannel<undefined, { token: AuthToken | undefined }>(
-    "check-auth-token",
-  ),
-  promptToken: mkChannel<undefined, { token: AuthToken }>("get-auth-token"),
+  checkAuth: mkChannel<undefined, { auth: AuthInfo | undefined }>("check-auth"),
+  promptAuth: mkChannel<undefined, { auth: AuthInfo }>("prompt-auth"),
 };
 
 const channelKeyByType = Object.fromEntries(
@@ -92,6 +92,10 @@ export function listenChannels(handlers: ChannelHandlers): void {
   ) {
     const envelopeResult = zChannelMessageEnvelope.safeParse(message);
     if (!envelopeResult.success) {
+      sendResponse({
+        success: false,
+        error: envelopeResult.error.message,
+      });
       return;
     }
 
@@ -102,6 +106,14 @@ export function listenChannels(handlers: ChannelHandlers): void {
     }
 
     const fn = handlers[key];
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime safety.
+    if (fn === undefined) {
+      sendResponse({
+        success: false,
+        error: `No handler found for key '${key}'.`,
+      });
+      return;
+    }
     const req = envelope.data as Channels[typeof key]["_input"];
     // Can't use `await` here.
     fn(req).then(

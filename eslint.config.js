@@ -4,6 +4,8 @@ import { includeIgnoreFile } from "@eslint/compat";
 import eslint from "@eslint/js";
 import pluginQuery from "@tanstack/eslint-plugin-query";
 import { defineConfig } from "eslint/config";
+import react from "eslint-plugin-react";
+import reactHooks from "eslint-plugin-react-hooks";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import unicorn from "eslint-plugin-unicorn";
 import tseslint from "typescript-eslint";
@@ -24,6 +26,8 @@ export default defineConfig(
     },
   },
   unicorn.configs.recommended,
+  react.configs.flat.all,
+  reactHooks.configs["recommended-latest"],
   pluginQuery.configs["flat/recommended"],
   {
     plugins: {
@@ -109,6 +113,8 @@ export default defineConfig(
       "unicorn/prefer-top-level-await": "off",
       // Mid.
       "unicorn/prefer-query-selector": "off",
+      // Conflicts with prettier.
+      "unicorn/no-nested-ternary": "off",
       "unicorn/template-indent": [
         "warn",
         {
@@ -120,6 +126,34 @@ export default defineConfig(
           selectors: ["TemplateLiteral"],
         },
       ],
+
+      //
+      // react
+      //
+      // Prefer FC.
+      "react/function-component-definition": "off",
+      // Allow typescript.
+      "react/jsx-filename-extension": ["error", { extensions: [".tsx"] }],
+      // Conflicts with prettier.
+      "react/jsx-indent": "off",
+      // Conflicts with prettier.
+      "react/jsx-indent-props": "off",
+      // Conflicts with prettier.
+      "react/jsx-max-props-per-line": "off",
+      // Meh.
+      "react/jsx-no-bind": "off",
+      // Hobby project, no need for translations.
+      "react/jsx-no-literals": "off",
+      // Conflicts with prettier.
+      "react/jsx-one-expression-per-line": "off",
+      // Ridiculous.
+      "react/jsx-max-depth": "off",
+      // No.
+      "react/no-multi-comp": "off",
+      // Use Typescript.
+      "react/prop-types": "off",
+      // Not needed.
+      "react/react-in-jsx-scope": "off",
     },
   },
 );

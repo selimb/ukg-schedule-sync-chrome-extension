@@ -47,6 +47,7 @@ export function extractSchedule(): Schedule {
       schedule.push(item);
     }
   }
+  schedule.sort((a, b) => a.sortKey - b.sortKey);
 
   return schedule;
 }
@@ -54,6 +55,15 @@ export function extractSchedule(): Schedule {
 function parseEvent($event: Element): ScheduleItem | undefined {
   const id = $event.id;
   if (!id) {
+    return;
+  }
+
+  // This will usually be set for Stat Holidays.
+  // The time span is even hidden with CSS:
+  //   .calendar-event-paycodeedit .fc-time {
+  //     display: none;
+  //   }
+  if ($event.classList.contains("calendar-event-paycodeedit")) {
     return;
   }
 
@@ -88,10 +98,19 @@ function parseEvent($event: Element): ScheduleItem | undefined {
     times.end.hour = 24;
   }
 
+  const timestampUtc = Date.UTC(
+    date.year,
+    date.month - 1,
+    date.day,
+    times.start.hour,
+    times.start.minute,
+  );
+
   return {
     id,
     start: { ...date, ...times.start },
     end: { ...date, ...times.end },
+    sortKey: timestampUtc,
   };
 }
 

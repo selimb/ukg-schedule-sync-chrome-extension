@@ -5,13 +5,13 @@ import { setEnvironment } from "./env";
 setEnvironment("service-worker");
 
 listenChannels({
-  checkAuthToken: async function checkAuthToken() {
-    const token = await authManager.checkToken();
-    return { token };
+  checkAuth: async function checkAuthToken() {
+    const auth = await authManager.checkAuth();
+    return { auth };
   },
-  promptToken: async function getAuthToken() {
-    const token = await authManager.promptToken();
-    return { token };
+  promptAuth: async function getAuthToken() {
+    const auth = await authManager.promptAuth();
+    return { auth };
   },
 });
 chrome.action.onClicked.addListener(() => {

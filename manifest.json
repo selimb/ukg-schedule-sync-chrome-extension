@@ -4,7 +4,7 @@
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1jiDcm0kDtiVmmmfKRWod+JCv/5+rzpzCcyVAGB3PqIBwd0Bd/jDZSTkgYeKRSPNtni+TLEvEylE1xxNbapLIocXU76P12GIuTxesj5FGXjmmoah30hxmzdWzIZ46XnRDUexhBqy16iCEVO5rp1nlOmXtWJEqc2WjXeLbCh8+mht7AenCj0aa9QywS5IIWAQeuuIrNLpx5Q6cY0H2yQhc8MlC1cDs2UCqVHP6sPfNNJdaWVqLpjuVd90YRT2xlTAGfJQZIYB7BHW8BmXcUWC1BhH1xpJbFY/vgiF+6Py2Qi4uZEedOogMH/6LYKOQG+KlIZQnPXnBIZZ7E/u+XP8qQIDAQAB",
   "manifest_version": 3,
   "host_permissions": ["https://www.googleapis.com/*"],
-  "permissions": ["identity", "storage"],
+  "permissions": ["identity", "identity.email", "storage"],
   "action": {
     "default_icon": {
       "16": "assets/ukg.png",

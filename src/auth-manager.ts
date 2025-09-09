@@ -1,23 +1,38 @@
 import { channels } from "./channels";
 import { env } from "./env";
-import { log } from "./logger";
 import { asyncDedup } from "./utils/async-dedup";
 
-type Token = chrome.identity.GetAuthTokenResult;
-
 type AuthManagerStatus = "initial" | "need-token" | "ready";
+
+/** Authentication token and profile details. */
+export type AuthInfo = {
+  token: chrome.identity.GetAuthTokenResult;
+  profile: chrome.identity.ProfileUserInfo;
+};
+
+async function checkCachedToken(): Promise<
+  chrome.identity.GetAuthTokenResult | undefined
+> {
+  try {
+    const token = await chrome.identity.getAuthToken({ interactive: false });
+    return token;
+  } catch (error) {
+    // XXX check error
+    return undefined;
+  }
+}
 
 /**
  * Manages the chrome identity token.
  */
 export class AuthManager {
   /** This token is guaranteed to be valid. */
-  private _token: Token | undefined;
+  private _authInfo: AuthInfo | undefined;
   private _status: AuthManagerStatus = "initial";
 
   constructor() {
-    this.checkToken = asyncDedup(this.checkToken.bind(this));
-    this.promptToken = asyncDedup(this.promptToken.bind(this));
+    this.checkAuth = asyncDedup(this.checkAuth.bind(this));
+    this.promptAuth = asyncDedup(this.promptAuth.bind(this));
   }
 
   get status(): AuthManagerStatus {
@@ -29,47 +44,45 @@ export class AuthManager {
    * This should be used if the token is known to be invalid, e.g., if a request using the token
    * returned a 401.
    */
-  invalidateToken(): void {
-    this._token = undefined;
+  invalidate(): void {
+    this._authInfo = undefined;
     this._status = "need-token";
   }
 
-  async checkToken(): Promise<Token | undefined> {
-    let token: Token | undefined;
-    try {
-      // XXX check whether we can non-interactively getAuthToken in content-script
-      if (env.canPromptAuth()) {
-        token = await chrome.identity.getAuthToken({
-          interactive: false,
-        });
-      } else {
-        // eslint-disable-next-line unicorn/no-useless-undefined -- No choice.
-        const resp = await channels.checkAuthToken.send(undefined);
-        token = resp.token;
-      }
-    } catch (error) {
-      // XXX check error
-      log("error", "AuthManager.checkToken error", error);
-      this._status = "need-token";
-      this._token = undefined;
-      return undefined;
-    }
-    this._token = token;
-    this._status = "ready";
-  }
-
-  async promptToken(): Promise<Token> {
-    let token: Token;
+  async checkAuth(): Promise<AuthInfo | undefined> {
+    let auth: AuthInfo | undefined;
+    // XXX check whether we can non-interactively getAuthToken in content-script
     if (env.canPromptAuth()) {
-      token = await chrome.identity.getAuthToken({ interactive: true });
+      const token = await checkCachedToken();
+      if (token) {
+        const profile = await chrome.identity.getProfileUserInfo();
+        auth = { token, profile };
+      }
     } else {
       // eslint-disable-next-line unicorn/no-useless-undefined -- No choice.
-      const resp = await channels.promptToken.send(undefined);
-      token = resp.token;
+      const resp = await channels.checkAuth.send(undefined);
+      console.info("resp", resp);
+      auth = resp.auth;
     }
-    this._token = token;
+    this._authInfo = auth;
     this._status = "ready";
-    return this._token;
+    return this._authInfo;
+  }
+
+  async promptAuth(): Promise<AuthInfo> {
+    let auth: AuthInfo;
+    if (env.canPromptAuth()) {
+      const token = await chrome.identity.getAuthToken({ interactive: true });
+      const profile = await chrome.identity.getProfileUserInfo();
+      auth = { token, profile };
+    } else {
+      // eslint-disable-next-line unicorn/no-useless-undefined -- No choice.
+      const resp = await channels.promptAuth.send(undefined);
+      auth = resp.auth;
+    }
+    this._authInfo = auth;
+    this._status = "ready";
+    return this._authInfo;
   }
 }
 

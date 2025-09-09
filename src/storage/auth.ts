@@ -1,9 +1,8 @@
-// XXX delete
+// XXX Delete
 /**
  * Storage of the auth token.
  * Chrome has its own storage, but it's opaque.
  */
-export type AuthToken = chrome.identity.GetAuthTokenResult;
 
 const STORAGE = chrome.storage.local;
 const KEY = "auth";

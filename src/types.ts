@@ -15,6 +15,8 @@ export type ScheduleItem = {
   id: string;
   start: NaiveDatetime;
   end: NaiveDatetime;
+  /** Only used for sorting */
+  sortKey: number;
 };
 
 export type Schedule = ScheduleItem[];
