@@ -3,6 +3,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
 
+import { $ } from "bun";
+
 const SRC_DIR = "src";
 const DIST_DIR = "dist";
 const ENTRYPOINTS = {
@@ -57,6 +59,20 @@ async function build(): Promise<void> {
       const size = o.size / 1024;
       outputs.push([relpath, size.toFixed(2), "KB"]);
     }
+  }
+
+  // tailwind
+  {
+    const input = "src/content-script/content-script.css";
+    const output = "dist/content-script.css";
+    try {
+      await $`node_modules/.bin/tailwindcss -i ${input} -o ${output}`.quiet();
+    } catch (error) {
+      console.error(error);
+      return;
+    }
+    const size = (await fs.stat(output)).size / 1024;
+    outputs.push([output, size.toFixed(2), "KB"]);
   }
 
   // eslint-disable-next-line no-console -- Hush.

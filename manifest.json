@@ -12,6 +12,12 @@
       "32": "assets/ukg.png"
     }
   },
+  "web_accessible_resources": [
+    {
+      "resources": ["dist/content-script.css"],
+      "matches": ["https://*.mykronos.com/*"]
+    }
+  ],
   "content_scripts": [
     {
       "matches": ["https://*.mykronos.com/ess"],

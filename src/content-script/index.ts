@@ -1,7 +1,7 @@
 /** Entrypoint for the Chrome content_script. */
 
 import { setEnvironment } from "../env";
-import { renderBadge } from "./badge";
+import { renderBadge } from "./app";
 import { DateDisplay } from "./date-display";
 import { DateDisplayObserver, DocumentObserver } from "./observers";
 

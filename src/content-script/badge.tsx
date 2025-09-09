@@ -1,19 +1,11 @@
-import {
-  QueryClient,
-  QueryClientProvider,
-  useQuery,
-} from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { type FC, useSyncExternalStore } from "react";
-import { createRoot } from "react-dom/client";
 
 import { authManager } from "../auth-manager";
 import { log } from "../logger";
-import { debug } from "../storage/debug";
-import type { Schedule } from "../types";
-import { waitFor } from "../utils/wait-for";
 import { DateDisplay } from "./date-display";
 import { DateDisplayObserver } from "./observers";
-import { extractSchedule } from "./parser";
+import { waitSchedule } from "./parser";
 
 type UseWaitScheduleResult = ReturnType<typeof useWaitSchedule>;
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Type inference is easier.
@@ -91,7 +83,7 @@ function getIconProps(status: BadgeStatus): { title: string; icon: string } {
   }
 }
 
-type BadgeProps = {
+export type BadgeProps = {
   dateDisplay: DateDisplay;
   dateDisplayObserver: DateDisplayObserver;
 };
@@ -109,72 +101,8 @@ export const Badge: FC<BadgeProps> = ({ dateDisplay, dateDisplayObserver }) => {
   const iconProps = getIconProps(status);
 
   return (
-    <span title={iconProps.title} className="btn">
+    <button title={iconProps.title} className="text-lg">
       {iconProps.icon}
-    </span>
+    </button>
   );
 };
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      refetchOnMount: false,
-      staleTime: Infinity,
-      retry: false,
-    },
-  },
-});
-
-async function waitSchedule(): Promise<Schedule | Error> {
-  const schedule = await waitFor(
-    () => {
-      const schedule = extractSchedule();
-      return schedule.length > 0 ? schedule : undefined;
-    },
-    { intervalMs: 100, abort: AbortSignal.timeout(5000) },
-  );
-
-  if (schedule) {
-    if (debug.get()) {
-      log("debug", `Extracted ${schedule.length} schedule items:`, schedule);
-    } else {
-      log("info", `Extracted ${schedule.length} schedule items.`);
-    }
-    return schedule;
-  } else {
-    const error = new Error("No schedule found");
-    log("warn", error.message);
-    return error;
-  }
-}
-
-const App: FC<BadgeProps> = (props) => {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <Badge {...props} />
-    </QueryClientProvider>
-  );
-};
-
-export function renderBadge(
-  dateDisplay: DateDisplay,
-  dateDisplayObserver: DateDisplayObserver,
-): void {
-  const $parent = dateDisplay.$element.parentElement;
-  if (!$parent) {
-    throw new Error("Date display has no parent element");
-  }
-  const $root = document.createElement("ukg-schedule-sync");
-  $parent.append($root);
-  const reactRoot = createRoot($root);
-  reactRoot.render(
-    <App dateDisplay={dateDisplay} dateDisplayObserver={dateDisplayObserver} />,
-  );
-
-  dateDisplayObserver.listenRemove(() => {
-    reactRoot.unmount();
-    $root.remove();
-  });
-}

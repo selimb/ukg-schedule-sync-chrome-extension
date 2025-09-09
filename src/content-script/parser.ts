@@ -2,7 +2,33 @@
  * DOM parsing utilities.
  */
 import { log } from "../logger";
+import { debug } from "../storage/debug";
 import type { NaiveDate, NaiveTime, Schedule, ScheduleItem } from "../types";
+import { waitFor } from "../utils/wait-for";
+
+/** Runs {@link extractSchedule} with retries. */
+export async function waitSchedule(): Promise<Schedule | Error> {
+  const schedule = await waitFor(
+    () => {
+      const schedule = extractSchedule();
+      return schedule.length > 0 ? schedule : undefined;
+    },
+    { intervalMs: 100, abort: AbortSignal.timeout(5000) },
+  );
+
+  if (schedule) {
+    if (debug.get()) {
+      log("debug", `Extracted ${schedule.length} schedule items:`, schedule);
+    } else {
+      log("info", `Extracted ${schedule.length} schedule items.`);
+    }
+    return schedule;
+  } else {
+    const error = new Error("No schedule found");
+    log("warn", error.message);
+    return error;
+  }
+}
 
 /**
  * Extracts a schedule from the DOM.
