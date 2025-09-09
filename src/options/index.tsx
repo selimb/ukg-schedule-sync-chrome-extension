@@ -1,4 +1,5 @@
-import { Component, type ComponentChildren, render } from "preact";
+import { Component, type JSX } from "react";
+import { createRoot } from "react-dom/client";
 
 import { setEnvironment } from "../env";
 import { AuthForm } from "./auth-form";
@@ -13,7 +14,7 @@ class App extends Component {
     this.setState({ error });
   }
 
-  render(): ComponentChildren {
+  render(): JSX.Element {
     const { error } = this.state;
     if (error !== undefined) {
       return <div>Oops, something went wrong.</div>;
@@ -32,7 +33,8 @@ class App extends Component {
 
 const container = document.getElementById("root");
 if (container) {
-  render(<App />, container);
+  const reactRoot = createRoot(container);
+  reactRoot.render(<App />);
 } else {
   alert("No root container found.");
 }

@@ -17,7 +17,7 @@
 
     // React
     "jsx": "react-jsx",
-    "jsxImportSource": "preact",
+    "jsxImportSource": "react",
 
     // Vanilla JS
     "checkJs": true,

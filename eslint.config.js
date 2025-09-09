@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 
 import { includeIgnoreFile } from "@eslint/compat";
 import eslint from "@eslint/js";
+import pluginQuery from "@tanstack/eslint-plugin-query";
 import { defineConfig } from "eslint/config";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import unicorn from "eslint-plugin-unicorn";
@@ -23,6 +24,7 @@ export default defineConfig(
     },
   },
   unicorn.configs.recommended,
+  pluginQuery.configs["flat/recommended"],
   {
     plugins: {
       "simple-import-sort": simpleImportSort,

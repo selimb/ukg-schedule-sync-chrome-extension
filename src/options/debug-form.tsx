@@ -1,4 +1,4 @@
-import { type FC, useSyncExternalStore } from "preact/compat";
+import { type FC, useSyncExternalStore } from "react";
 
 import { debug } from "../storage/debug";
 

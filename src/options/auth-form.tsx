@@ -1,4 +1,4 @@
-import { type FC, useState } from "preact/compat";
+import { type FC, useState } from "react";
 
 type CachedTokenState = {};
 
