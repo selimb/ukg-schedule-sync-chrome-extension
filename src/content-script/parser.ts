@@ -3,47 +3,66 @@
  */
 import { log } from "../logger";
 import { debug } from "../storage/debug";
-import type { NaiveDate, NaiveTime, Schedule, ScheduleEvent } from "../types";
+import { hashSchedule } from "../storage/sync-cache";
+import type {
+  NaiveDate,
+  NaiveTime,
+  Schedule,
+  ScheduleEvent,
+  ScheduleWithEtag,
+} from "../types";
 import { waitFor } from "../utils/wait-for";
+import { waitScheduleStable } from "./observers";
 
-/** Runs {@link extractSchedule} with retries. */
-export async function waitSchedule(): Promise<Schedule | Error> {
-  const schedule = await waitFor(
-    () => {
-      const schedule = extractSchedule();
-      return schedule;
+/** Runs {@link extractSchedule} with retries and waits for it to stabilize. */
+export async function waitSchedule(): Promise<ScheduleWithEtag | Error> {
+  const $scheduleRoot = await waitFor(
+    () => document.querySelector("krn-calendar"),
+    { initialDelayMs: 0, intervalMs: 100, maxWaitMs: 5000 },
+  );
+  if (!$scheduleRoot) {
+    return new Error("No schedule root found");
+  }
+
+  const result = await waitScheduleStable(
+    $scheduleRoot,
+    async () => {
+      const schedule = extractSchedule($scheduleRoot);
+      if (!schedule) {
+        return undefined;
+      }
+      const etag = await hashSchedule(schedule);
+      return { schedule, etag };
     },
-    { intervalMs: 100, abort: AbortSignal.timeout(5000) },
+    { maxWaitMs: 10_000, stableMs: 1000 },
   );
 
-  if (schedule) {
-    if (debug.get()) {
-      log(
-        "debug",
-        `Extracted ${schedule.events.length} schedule events:`,
-        schedule,
-      );
-    } else {
-      log("info", `Extracted ${schedule.events.length} schedule events.`);
-    }
-    return schedule;
-  } else {
-    const error = new Error("No schedule found");
-    log("warn", error.message);
-    return error;
+  if (!result) {
+    return new Error("No schedule found");
   }
+
+  const { schedule } = result;
+
+  if (debug.get()) {
+    log(
+      "debug",
+      `Extracted ${schedule.events.length} schedule events:`,
+      schedule,
+    );
+  } else {
+    log("info", `Extracted ${schedule.events.length} schedule events.`);
+  }
+  if (schedule.events.length === 0) {
+    return new Error("No events found");
+  }
+
+  return result;
 }
 
 /**
  * Extracts a schedule from the DOM.
  */
-export function extractSchedule(): Schedule | undefined {
-  const $scheduleRoot = document.querySelector("krn-calendar");
-  if (!$scheduleRoot) {
-    log("warn", "No schedule root found.");
-    return undefined;
-  }
-
+export function extractSchedule($scheduleRoot: Element): Schedule | undefined {
   const bounds = extractBounds($scheduleRoot);
   if (!bounds) {
     return undefined;

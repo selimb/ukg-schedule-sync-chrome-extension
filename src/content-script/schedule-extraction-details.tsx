@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 
 import { log } from "../logger";
+import { Button } from "../shared/button";
 import { ErrorDetails } from "../shared/error-details";
 import { Icon } from "../shared/icons";
 import type { NaiveDate, NaiveDatetime } from "../types";
@@ -14,83 +15,95 @@ export const ScheduleExtractionDetails: React.FC<{
 
   let icon: string;
   let body: React.ReactNode;
+  const retryButton = (
+    <Button
+      onClick={() => {
+        void qSchedule.refetch();
+      }}
+      type="button"
+    >
+      Retry
+    </Button>
+  );
+  let showRetry = true;
 
-  switch (qSchedule.status) {
-    case "pending": {
-      icon = Icon.loading;
-      body = <p>Loading...</p>;
-      break;
-    }
-    case "error": {
-      icon = Icon.error;
-      body = <ErrorDetails error={qSchedule.error} />;
-      break;
-    }
-    case "success": {
-      if (qSchedule.data instanceof Error) {
-        icon = Icon.warning;
-        body = <p>Zero events found.</p>;
-      } else {
-        const schedule = qSchedule.data;
-        icon = Icon.ok;
-        body = (
-          <>
-            <p>
-              {"Found "}
-
-              <button
-                className="cursor-pointer underline"
-                onClick={() => {
-                  if (!expand) {
-                    const formatted = schedule.events
-                      .map((item) => {
-                        const start = dateToDateTimeString(item.start);
-                        const end = dateToDateTimeString(item.end);
-                        return `${start} to ${end} - ${item.id}`;
-                      })
-                      .join("\n");
-                    log("info", `schedule:\n${formatted}`);
-                  }
-                  setExpand((prev) => !prev);
-                }}
-                type="button"
-              >
-                {schedule.events.length}
-              </button>
-
-              {" events from "}
-
-              <span>{dateToDateString(schedule.bounds.start)}</span>
-
-              {" to "}
-
-              <span>{dateToDateString(schedule.bounds.start)}</span>
-            </p>
-
-            {expand ? (
-              <table className="w-full table-auto">
-                <tbody>
-                  {schedule.events.map((item) => (
-                    <tr className="font-mono" key={item.id}>
-                      <td>{item.id}</td>
-
-                      {[item.start, item.end].map((dt) => {
-                        const dateTime = dateToDateTimeString(dt);
-                        return (
-                          <td key={dateTime}>
-                            <time dateTime={dateTime}>{dateTime}</time>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : undefined}
-          </>
-        );
+  if (qSchedule.status === "pending" || qSchedule.fetchStatus === "fetching") {
+    showRetry = false;
+    icon = Icon.loading;
+    body = <p>Loading...</p>;
+  } else {
+    switch (qSchedule.status) {
+      case "error": {
+        icon = Icon.error;
+        body = <ErrorDetails error={qSchedule.error} />;
+        break;
       }
-      break;
+      case "success": {
+        if (qSchedule.data instanceof Error) {
+          icon = Icon.warning;
+          body = <p>{qSchedule.data.message}</p>;
+        } else {
+          const { schedule, etag } = qSchedule.data;
+          icon = Icon.ok;
+          body = (
+            <>
+              <p>
+                {"Found "}
+
+                <button
+                  className="cursor-pointer underline"
+                  onClick={() => {
+                    if (!expand) {
+                      const formatted = schedule.events
+                        .map((item) => {
+                          const start = dateToDateTimeString(item.start);
+                          const end = dateToDateTimeString(item.end);
+                          return `${start} to ${end} - ${item.id}`;
+                        })
+                        .join("\n");
+                      log("info", `schedule ${etag}:\n${formatted}`);
+                    }
+                    setExpand((prev) => !prev);
+                  }}
+                  type="button"
+                >
+                  {schedule.events.length}
+                </button>
+
+                {" events from "}
+
+                <span>{dateToDateString(schedule.bounds.start)}</span>
+
+                {" to "}
+
+                <span>{dateToDateString(schedule.bounds.end)}</span>
+              </p>
+
+              {expand ? (
+                <table className="w-full table-auto">
+                  <tbody>
+                    {schedule.events.map((item) => (
+                      <tr className="font-mono" key={item.id}>
+                        <td>{item.id}</td>
+
+                        {[item.start, item.end].map((dt) => {
+                          const dateTime = dateToDateTimeString(dt);
+                          return (
+                            <td key={dateTime}>
+                              <time dateTime={dateTime}>{dateTime}</time>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : undefined}
+            </>
+          );
+        }
+        break;
+      }
     }
   }
 
@@ -101,6 +114,8 @@ export const ScheduleExtractionDetails: React.FC<{
 
         <span>{icon}</span>
       </h2>
+
+      {showRetry ? retryButton : undefined}
 
       {body}
     </div>

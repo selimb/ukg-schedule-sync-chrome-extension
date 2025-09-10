@@ -9,13 +9,14 @@ type RequestOptions = {
   method: "GET" | "POST" | "PUT" | "DELETE";
   path: string;
   query?: URLSearchParams;
+  json?: unknown;
 };
 
 type RequestInfo = {
   url: string;
   method: string;
   headers: Record<string, string>;
-  body?: string;
+  body?: unknown;
 };
 
 type ResponseInfo = {
@@ -27,6 +28,7 @@ type ResponseInfo = {
 class RequestError extends Error {
   public readonly request: RequestInfo;
   public readonly response: ResponseInfo;
+  public override readonly name = "RequestError";
 
   constructor(message: string, request: RequestInfo, response: ResponseInfo) {
     super(message);
@@ -58,14 +60,16 @@ class RequestError extends Error {
   }
 }
 
+const zCalendarId = z.string();
 export const zCalendar = z.object({
-  id: z.string(),
+  id: zCalendarId,
   summary: z.string(),
 });
 export type Calendar = z.infer<typeof zCalendar>;
 
 export const zCalendarEvent = z.object({
   id: z.string(),
+  summary: z.nullish(z.string()),
   start: z.object({
     dateTime: z.string(),
     timeZone: z.nullish(z.string()),
@@ -77,6 +81,11 @@ export const zCalendarEvent = z.object({
 });
 export type CalendarEvent = z.infer<typeof zCalendarEvent>;
 
+export type InsertEventInput = {
+  calendarId: Calendar["id"];
+  event: CalendarEvent;
+};
+
 export class GoogleClient {
   public readonly token: string;
 
@@ -85,7 +94,7 @@ export class GoogleClient {
   }
 
   async request(options: RequestOptions): Promise<Response> {
-    const { method, path, query, ..._rest } = options;
+    const { method, path, query, json, ..._rest } = options;
     const _exhaustiveCheck: Required<typeof _rest> = {};
 
     const url = new URL(path, BASE_URL);
@@ -93,19 +102,26 @@ export class GoogleClient {
       url.search = query.toString();
     }
 
-    const headers = {
+    const headers: Record<string, string> = {
       Authorization: `Bearer ${this.token}`,
     };
+    let body: string | undefined;
+    if (json !== undefined) {
+      headers["Content-Type"] = "application/json";
+      body = JSON.stringify(json);
+    }
 
     const requestInfo: RequestInfo = {
       url: url.toString(),
       method,
       headers,
+      body: json,
     };
 
     const resp = await fetch(url, {
       method,
       headers,
+      body,
     });
 
     if (!resp.ok) {
@@ -138,7 +154,7 @@ export class GoogleClient {
     calendarId: Calendar["id"];
     min: Date;
     max: Date;
-  }): Promise<unknown[]> {
+  }): Promise<CalendarEvent[]> {
     const { calendarId, min, max } = input;
 
     const query = new URLSearchParams({
@@ -161,5 +177,81 @@ export class GoogleClient {
     });
     const parsed = schema.parse(data);
     return parsed.items;
+  }
+
+  async insertEvent(input: InsertEventInput): Promise<void> {
+    const { calendarId, event } = input;
+
+    const path = `calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`;
+    await this.request({
+      method: "POST",
+      path,
+      json: event,
+    });
+  }
+
+  async updateEvent(input: InsertEventInput): Promise<void> {
+    const { calendarId, event } = input;
+
+    const path = `calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(event.id)}`;
+    await this.request({
+      method: "PUT",
+      path,
+      json: event,
+    });
+  }
+
+  async upsertEvent(
+    input: InsertEventInput,
+    options: { tryFirst: "insert" | "update" },
+  ): Promise<"inserted" | "updated"> {
+    switch (options.tryFirst) {
+      case "insert": {
+        try {
+          await this.insertEvent(input);
+          return "inserted";
+        } catch (error) {
+          if (error instanceof RequestError && error.response.status === 409) {
+            await this.updateEvent(input);
+            return "updated";
+          }
+          throw error;
+        }
+      }
+      case "update": {
+        try {
+          await this.updateEvent(input);
+          return "updated";
+        } catch (error) {
+          if (error instanceof RequestError && error.response.status === 404) {
+            await this.insertEvent(input);
+            return "inserted";
+          }
+          throw error;
+        }
+      }
+    }
+  }
+
+  async deleteEvent(input: {
+    calendarId: Calendar["id"];
+    eventId: CalendarEvent["id"];
+  }): Promise<boolean> {
+    const { calendarId, eventId } = input;
+
+    const path = `calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`;
+
+    try {
+      await this.request({
+        method: "DELETE",
+        path,
+      });
+      return true;
+    } catch (error) {
+      if (error instanceof RequestError && error.response.status === 404) {
+        return false;
+      }
+      throw error;
+    }
   }
 }

@@ -11,34 +11,45 @@ export const SyncDetails: React.FC<{
   let icon: string | undefined;
   let body: React.ReactNode;
 
-  switch (qSyncCalendar.status) {
+  const { status } = qSyncCalendar;
+  switch (status) {
     case "idle": {
-      break;
-    }
-    case "pending": {
-      icon = Icon.loading;
       break;
     }
     case "error": {
       icon = Icon.error;
-      body = <ErrorDetails error={qSyncCalendar.error} />;
+      body = (
+        <div>
+          <Button onClick={() => void qSyncCalendar.resync()} type="button">
+            Retry
+          </Button>
+
+          <ErrorDetails error={qSyncCalendar.error} />
+        </div>
+      );
       break;
     }
     case "syncing": {
       icon = Icon.syncing;
       break;
     }
-    case "should-sync":
+    case "should-sync": {
+      icon = Icon.warning;
+      body = (
+        <Button onClick={() => void qSyncCalendar.resync()} type="button">
+          Sync
+        </Button>
+      );
+
+      break;
+    }
     case "cache-hit":
     case "synced": {
-      icon = qSyncCalendar.status === "should-sync" ? Icon.warning : Icon.ok;
-      const syncedOn =
-        qSyncCalendar.status === "synced"
-          ? "just now"
-          : `on ${formatLastSyncOn(qSyncCalendar.lastSyncOn)}`;
+      icon = Icon.ok;
+      const text = `Last synced on ${formatLastSyncOn(qSyncCalendar.lastSyncOn)}`;
       body = (
         <div className="flex items-center gap-2">
-          <span>Synced {syncedOn}</span>
+          <span>{text}</span>
 
           <Button onClick={() => void qSyncCalendar.resync()} type="button">
             Resync

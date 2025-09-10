@@ -2,7 +2,7 @@ import React, { useRef, useSyncExternalStore } from "react";
 
 import { Icon } from "../shared/icons";
 import { useAuth, type UseAuthResult } from "../shared/use-auth";
-import type { Schedule } from "../types";
+import type { ScheduleWithEtag } from "../types";
 import { AuthenticationDetails } from "./auth-details";
 import { CalendarStoreDetails } from "./calendar-store-details";
 import { DateDisplay } from "./date-display";
@@ -60,9 +60,6 @@ function computeBadgeStatus(
   }
 
   switch (qSyncCalendar.status) {
-    case "pending": {
-      return { type: "loading" };
-    }
     // Should never happen?
     case "idle":
     case "should-sync": {
@@ -127,11 +124,11 @@ export const Badge: React.FC<BadgeProps> = ({
   const { qCheckAuth, promptAuth } = useAuth();
   const qSchedule = useWaitSchedule({ month });
   const calendar = useCalendarStore();
-  const schedule: Schedule | undefined =
+  const scheduleWithEtag: ScheduleWithEtag | undefined =
     qSchedule.data instanceof Error ? undefined : qSchedule.data;
   const qSyncCalendar = useSyncCalendar({
     month,
-    schedule,
+    scheduleWithEtag,
     calendarId: calendar?.id,
   });
 

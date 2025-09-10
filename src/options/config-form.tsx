@@ -2,7 +2,7 @@ import { type FC, useSyncExternalStore } from "react";
 
 import { configStore } from "../storage/config";
 
-export const DebugForm: FC = () => {
+export const ConfigForm: FC = () => {
   const config = useSyncExternalStore(configStore.listen, configStore.get);
 
   return (

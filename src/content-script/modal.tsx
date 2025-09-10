@@ -26,7 +26,7 @@ export const Modal: React.FC<ModalProps> = ({ header, children, ref }) => {
     // Inspired by https://flowbite.com/docs/components/modal/
     <dialog
       {...dialogProps}
-      className="m-auto max-w-full min-w-2xl space-y-2 overflow-x-hidden overflow-y-auto rounded-lg bg-white backdrop:bg-gray-900/50"
+      className="m-auto max-h-[80%] max-w-[80%] min-w-2xl space-y-2 overflow-x-hidden overflow-y-auto rounded-lg bg-white backdrop:bg-gray-900/50"
       ref={dialogRef}
     >
       {/* Header */}

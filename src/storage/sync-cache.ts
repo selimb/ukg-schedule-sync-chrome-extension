@@ -1,6 +1,6 @@
 import * as z from "zod/mini";
 
-import type { MonthString, Schedule } from "../types";
+import type { Etag, MonthString, Schedule } from "../types";
 import { hashObject } from "../utils/hash-object";
 import { type StorageAreaKey, Store } from "./_common";
 
@@ -13,10 +13,14 @@ const TTL: number = 1000 * 60 * 60 * 24;
 const zMonth = z.string() satisfies z.ZodMiniType<MonthString>;
 
 const zCacheEntry = z.object({
-  etag: z.string(),
-  syncedOn: z.coerce.date(),
+  etag: z.string() satisfies z.ZodMiniType<Etag>,
+  // `chrome.storage` doesn't serialize `Date` :/
+  syncedOn: z.iso.datetime(),
 });
-export type SyncCacheEntry = z.infer<typeof zCacheEntry>;
+export type SyncCacheEntry = {
+  etag: Etag;
+  syncedOn: Date;
+};
 
 const zSyncCache = z.record(zMonth, zCacheEntry);
 type SyncCacheData = z.infer<typeof zSyncCache>;
@@ -46,13 +50,15 @@ export class SyncCache {
   }): SyncCacheEntry | undefined => {
     // Damn Typescript, why do you assume it's never undefined?
     // Could use an actual `Map`, but then we'd have to convert to/from object for storage.
-    const entry = this.map[month] as SyncCacheEntry | undefined;
-    return entry;
+    const entry = this.map[month] as z.infer<typeof zCacheEntry> | undefined;
+    return entry
+      ? { etag: entry.etag, syncedOn: new Date(entry.syncedOn) }
+      : undefined;
   };
 
   public isExpired(entry: SyncCacheEntry): boolean {
-    const now = new Date();
-    const age = now.getTime() - entry.syncedOn.getTime();
+    const now = Date.now();
+    const age = now - entry.syncedOn.getTime();
     return age > TTL;
   }
 
@@ -61,19 +67,20 @@ export class SyncCache {
     etag,
   }: {
     month: MonthString;
-    etag: SyncCacheEntry["etag"];
+    etag: Etag;
   }): Promise<void> {
     const now = new Date();
-    const mapNew = { ...this.map, [month]: { etag, syncedOn: now } };
+    const mapNew: typeof this.map = {
+      ...this.map,
+      [month]: { etag, syncedOn: now.toISOString() },
+    };
     await syncCacheStore.set(mapNew);
   }
 }
 
 export const syncCache = new SyncCache();
 
-export async function hashSchedule(
-  schedule: Schedule,
-): Promise<SyncCacheEntry["etag"]> {
+export async function hashSchedule(schedule: Schedule): Promise<Etag> {
   // Thanks to [schedule-sort], this should be stable.
   return await hashObject(schedule);
 }

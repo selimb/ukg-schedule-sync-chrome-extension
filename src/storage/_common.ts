@@ -23,7 +23,6 @@ export class Store<T> {
   private storage: chrome.storage.StorageArea;
   private listeners = new Set<Listener<T>>();
   private didWatch = false;
-  private didLoad = false;
 
   constructor(
     area: StorageAreaKey,
@@ -40,14 +39,10 @@ export class Store<T> {
 
   /** Preloads the current value from storage. */
   public load = async (): Promise<T> => {
-    if (this.didLoad) {
-      return this.curr;
-    }
     // TODO: Technically we could query all storage keys at once, but meh.
     const items = await this.storage.get(this.key);
     const raw: unknown = items[this.key];
     this.curr = this.parse(raw);
-    this.didLoad = true;
     return this.curr;
   };
 

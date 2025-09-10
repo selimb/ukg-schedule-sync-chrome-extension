@@ -4,6 +4,7 @@ import type { AuthInfo } from "./auth-manager";
 import type { SyncCalendarResult } from "./lib/sync";
 import { log } from "./logger";
 import type { Schedule } from "./types";
+import { formatError } from "./utils/format-error";
 
 type MessageType = string;
 type IMessage = Record<string, unknown> | undefined;
@@ -130,9 +131,8 @@ export function listenChannels(handlers: ChannelHandlers): void {
         });
       },
       (error: unknown) => {
-        log("error", "Channel handler error", error);
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
+        log("error", "Channel handler error.", error);
+        const errorMessage = formatError(error);
         sendResponse({ success: false, error: errorMessage });
       },
     );

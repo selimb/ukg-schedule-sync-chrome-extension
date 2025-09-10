@@ -14,6 +14,7 @@ export type NaiveTime = {
 export type NaiveDatetime = NaiveDate & NaiveTime;
 
 export type ScheduleEvent = {
+  /** This looks like `event-transfershift-4745823`. */
   id: string;
   start: NaiveDatetime;
   end: NaiveDatetime;
@@ -30,4 +31,11 @@ export type Schedule = {
     start: NaiveDate;
     end: NaiveDate;
   };
+};
+
+export type Etag = string;
+
+export type ScheduleWithEtag = {
+  schedule: Schedule;
+  etag: Etag;
 };

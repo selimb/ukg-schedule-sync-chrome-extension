@@ -11,6 +11,7 @@ import { log } from "../logger";
 import { preloadStores } from "../storage";
 import { AuthForm } from "./auth-form";
 import { CalendarForm } from "./calendar-form";
+import { ConfigForm } from "./config-form";
 import { DebugForm } from "./debug-form";
 
 setEnvironment("options");
@@ -59,6 +60,8 @@ class App extends Component {
     return (
       <main className="space-y-2 p-4">
         <DebugForm />
+
+        <ConfigForm />
 
         <AuthForm />
 

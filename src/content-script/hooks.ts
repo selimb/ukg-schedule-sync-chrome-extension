@@ -1,12 +1,13 @@
 import { skipToken, useQuery } from "@tanstack/react-query";
-import { useEffect, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 
 import { channels } from "../channels";
 import type { Calendar } from "../lib/google";
+import { log } from "../logger";
 import { calendarStore } from "../storage/calendar";
 import { configStore } from "../storage/config";
-import { hashSchedule, syncCache } from "../storage/sync-cache";
-import type { MonthString, Schedule } from "../types";
+import { syncCache } from "../storage/sync-cache";
+import type { MonthString, ScheduleWithEtag } from "../types";
 import { waitSchedule } from "./parser";
 
 export type UseWaitScheduleResult = ReturnType<typeof useWaitSchedule>;
@@ -31,11 +32,9 @@ export type UseSyncCalendarResult =
       status: "idle";
     }
   | {
-      status: "pending";
-    }
-  | {
       status: "error";
       error: unknown;
+      resync: Resync;
     }
   | {
       status: "cache-hit";
@@ -57,11 +56,11 @@ export type UseSyncCalendarResult =
 
 export function useSyncCalendar({
   month,
-  schedule,
+  scheduleWithEtag,
   calendarId,
 }: {
   month: MonthString | undefined;
-  schedule: Schedule | undefined;
+  scheduleWithEtag: ScheduleWithEtag | undefined;
   calendarId: Calendar["id"] | undefined;
 }): UseSyncCalendarResult {
   // Re-render on updates to syncCache.
@@ -71,19 +70,17 @@ export function useSyncCalendar({
     configStore.get,
   );
 
-  const qScheduleEtag = useAsyncMemo("schedule-etag", schedule, hashSchedule);
-  const scheduleEtag = qScheduleEtag.data;
-
   let canSync = false;
   let shouldSync = false;
   let lastSyncOn: Date | undefined;
-  if (month && scheduleEtag && calendarId) {
+  if (month && scheduleWithEtag && calendarId) {
     canSync = true;
     const cacheEntry = syncCache.getEntry({ month });
     if (cacheEntry) {
       lastSyncOn = cacheEntry.syncedOn;
       shouldSync =
-        syncCache.isExpired(cacheEntry) || cacheEntry.etag !== scheduleEtag;
+        syncCache.isExpired(cacheEntry) ||
+        cacheEntry.etag !== scheduleWithEtag.etag;
     } else {
       shouldSync = true;
     }
@@ -92,30 +89,32 @@ export function useSyncCalendar({
   const qSync = useQuery({
     // This query should automatically re-run when either the `month` or `scheduleEtag` changes.
     // eslint-disable-next-line @tanstack/query/exhaustive-deps -- Ditto.
-    queryKey: ["sync", month, scheduleEtag],
+    queryKey: ["sync", month, scheduleWithEtag?.etag],
     queryFn:
-      month && schedule && scheduleEtag && shouldSync
+      month && scheduleWithEtag
         ? async () => {
-            await channels.syncCalendar.send({ schedule });
-            await syncCache.add({ month, etag: scheduleEtag });
+            const { schedule, etag } = scheduleWithEtag;
+            const result = await channels.syncCalendar.send({
+              schedule,
+            });
+            log("info", "syncCalendar result:", result);
+            await syncCache.add({ month, etag });
+            return result;
           }
         : skipToken,
-    enabled: autoSync,
+    enabled: shouldSync && autoSync,
   });
 
   const resync = async (): Promise<void> => {
     await qSync.refetch();
   };
 
-  if (qScheduleEtag.status === "error" || qSync.status === "error") {
+  if (qSync.status === "error") {
     return {
       status: "error",
-      error: qScheduleEtag.error ?? qSync.error,
+      error: qSync.error,
+      resync,
     };
-  }
-
-  if (qScheduleEtag.status === "pending") {
-    return { status: "pending" };
   }
 
   if (!canSync) {
@@ -145,33 +144,4 @@ export function useSyncCalendar({
 
   // In theory we should only reach here if `autoSync` is off.
   return { status: "should-sync", lastSyncOn, resync };
-}
-
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Type inference is easier.
-function useAsyncMemo<I, O>(
-  queryKey: string,
-  value: I | undefined,
-  fn: (value: I) => Promise<O>,
-) {
-  const query = useQuery({
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps -- Nope.
-    queryKey: [queryKey],
-    queryFn:
-      value === undefined
-        ? skipToken
-        : async () => {
-            return await fn(value);
-          },
-    // Always disabled. We run this ourselves in `useEffect`.
-    enabled: false,
-  });
-  const refetch = query.refetch;
-  // Will trigger when `value` changes.
-  useEffect(() => {
-    if (value !== undefined) {
-      void refetch();
-    }
-  }, [value, refetch]);
-
-  return query;
 }

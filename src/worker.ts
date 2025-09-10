@@ -26,7 +26,7 @@ listenChannels({
     }
     const ooogleClient = new GoogleClient(auth.token.token);
 
-    const calendar = calendarStore.get();
+    const calendar = await calendarStore.load();
     if (!calendar) {
       throw new Error("Missing calendar in store.");
     }
@@ -38,6 +38,7 @@ listenChannels({
     });
   },
 });
+
 chrome.action.onClicked.addListener(() => {
   void chrome.runtime.openOptionsPage();
 });
