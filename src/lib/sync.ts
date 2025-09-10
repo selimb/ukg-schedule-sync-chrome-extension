@@ -8,12 +8,7 @@ import type {
   Schedule,
   ScheduleEvent,
 } from "../types";
-import {
-  type Calendar,
-  type CalendarEvent,
-  type GoogleClient,
-  zCalendarEvent,
-} from "./google";
+import type { Calendar, CalendarEvent, GoogleClient } from "./google";
 
 // TODO: Configurable?
 /**
@@ -143,23 +138,37 @@ function buildGoogleEvent(event: ScheduleEvent): CalendarEvent {
   };
 }
 
-function compareGoogleEvents(a: CalendarEvent, b: CalendarEvent): boolean {
-  // Parse both using zod because that generates a stable representation.
-  const aString = JSON.stringify(zCalendarEvent.parse(a));
-  const bString = JSON.stringify(zCalendarEvent.parse(b));
-  return aString === bString;
+function compareGoogleEvents(
+  existing: CalendarEvent,
+  required: CalendarEvent,
+): boolean {
+  // NOTE: Google Calendar will always *return* datetimes with a timezone offset,
+  // and so do we.
+  // Thus, we don't need to care about `timeZone` for date comparison.
+  if (existing.summary !== required.summary) {
+    return false;
+  }
+  if (
+    Date.parse(existing.start.dateTime) !== Date.parse(required.start.dateTime)
+  ) {
+    return false;
+  }
+  if (Date.parse(existing.end.dateTime) !== Date.parse(required.end.dateTime)) {
+    return false;
+  }
+  return true;
 }
 
 function naiveDateToDate(date: NaiveDate): Date {
   return fromZonedTime(
-    Date.UTC(date.year, date.month - 1, date.day),
+    new Date(date.year, date.month - 1, date.day),
     SCHEDULE_TIMEZONE,
   );
 }
 
 function naiveDatetimeToDate(dt: NaiveDatetime): Date {
   return fromZonedTime(
-    Date.UTC(dt.year, dt.month - 1, dt.day, dt.hour, dt.minute),
+    new Date(dt.year, dt.month - 1, dt.day, dt.hour, dt.minute),
     SCHEDULE_TIMEZONE,
   );
 }

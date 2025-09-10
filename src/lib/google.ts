@@ -1,7 +1,6 @@
 import * as z from "zod/mini";
 
 import { log } from "../logger";
-import { debug } from "../storage/debug";
 
 const BASE_URL = new URL("https://www.googleapis.com");
 
@@ -129,9 +128,7 @@ export class GoogleClient {
       throw error;
     }
 
-    if (debug.get()) {
-      log("debug", "GoogleClient.request", requestInfo, resp.status);
-    }
+    log("debug", "GoogleClient.request", requestInfo, resp.status);
 
     return resp;
   }

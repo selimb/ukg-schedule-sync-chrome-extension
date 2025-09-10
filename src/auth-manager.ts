@@ -14,8 +14,8 @@ async function checkCachedToken(): Promise<
   try {
     const token = await chrome.identity.getAuthToken({ interactive: false });
     return token;
-  } catch (error) {
-    // XXX check error
+  } catch {
+    // TODO: Check error.
     return undefined;
   }
 }

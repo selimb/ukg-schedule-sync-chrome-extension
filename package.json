@@ -8,7 +8,8 @@
     "eslint": "eslint . --max-warnings=0",
     "eslint:fix": "npm run eslint -- --fix",
     "lint": "npm run prettier && npm run tsc && npm run eslint",
-    "lint:fix": "npm run prettier:fix && npm run eslint:fix"
+    "lint:fix": "npm run prettier:fix && npm run eslint:fix",
+    "test": "bun test --preload ./src/setup.test.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.87.1",

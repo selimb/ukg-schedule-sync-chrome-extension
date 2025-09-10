@@ -97,6 +97,8 @@ export function listenChannels(handlers: ChannelHandlers): void {
     _sender,
     sendResponse: (envelope: ChannelResponseEnvelope) => void,
   ) {
+    log("debug", "channel.recv", message);
+
     const envelopeResult = zChannelMessageEnvelope.safeParse(message);
     if (!envelopeResult.success) {
       sendResponse({

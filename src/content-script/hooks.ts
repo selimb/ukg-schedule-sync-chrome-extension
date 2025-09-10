@@ -129,6 +129,10 @@ export function useSyncCalendar({
     };
   }
 
+  if (qSync.fetchStatus === "fetching") {
+    return { status: "syncing" };
+  }
+
   // At this point, we know that we should sync (or already did).
   if (qSync.status === "success") {
     return {
@@ -136,10 +140,6 @@ export function useSyncCalendar({
       lastSyncOn: new Date(qSync.dataUpdatedAt),
       resync,
     };
-  }
-
-  if (qSync.fetchStatus === "fetching") {
-    return { status: "syncing" };
   }
 
   // In theory we should only reach here if `autoSync` is off.
