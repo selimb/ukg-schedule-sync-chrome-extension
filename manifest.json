@@ -14,7 +14,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["dist/content-script.css"],
+      "resources": ["dist/ukg-schedule-sync.css"],
       "matches": ["https://*.mykronos.com/*"]
     }
   ],

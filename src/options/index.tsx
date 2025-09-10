@@ -1,17 +1,52 @@
+import {
+  QueryCache,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { Component, type JSX } from "react";
 import { createRoot } from "react-dom/client";
 
 import { setEnvironment } from "../env";
+import { log } from "../logger";
 import { AuthForm } from "./auth-form";
+import { CalendarForm } from "./calendar-form";
 import { DebugForm } from "./debug-form";
 
 setEnvironment("options");
 
-class App extends Component {
-  state: { error?: unknown } = { error: undefined };
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
+      staleTime: Infinity,
+      retry: false,
+    },
+  },
+  queryCache: new QueryCache({
+    onError(error, query) {
+      log("error", "[query error]", query.queryKey, error);
+    },
+  }),
+});
 
-  componentDidCatch(error: unknown): void {
-    this.setState({ error });
+class App extends Component {
+  // eslint-disable-next-line react/state-in-constructor -- Huh?
+  state: { error?: unknown };
+
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- This is what we want.
+  constructor(props: {}) {
+    super(props);
+    this.state = { error: undefined };
+  }
+
+  shouldComponentUpdate(): boolean {
+    return true;
+  }
+
+  static getDerivedStateFromError(error: unknown): App["state"] {
+    return { error };
   }
 
   render(): JSX.Element {
@@ -21,11 +56,12 @@ class App extends Component {
     }
 
     return (
-      <main>
-        <h1>Authentication</h1>
-        <AuthForm />
-        <h1>Debug</h1>
+      <main className="space-y-2 p-4">
         <DebugForm />
+
+        <AuthForm />
+
+        <CalendarForm />
       </main>
     );
   }
@@ -34,7 +70,11 @@ class App extends Component {
 const container = document.getElementById("root");
 if (container) {
   const reactRoot = createRoot(container);
-  reactRoot.render(<App />);
+  reactRoot.render(
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>,
+  );
 } else {
   alert("No root container found.");
 }

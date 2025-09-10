@@ -1,56 +1,61 @@
-import { type FC, useState } from "react";
+import type { FC } from "react";
 
-type CachedTokenState = {};
-
-type TokenState =
-  | {
-      state: "idle";
-      data?: undefined;
-      error?: undefined;
-    }
-  | {
-      state: "loading";
-      data?: undefined;
-      error?: undefined;
-    }
-  | {
-      state: "success";
-      data: chrome.identity.GetAuthTokenResult;
-      error?: undefined;
-    }
-  | {
-      state: "error";
-      data?: undefined;
-      error: unknown;
-    };
-
-const TOKEN_STATE_DEFAULT: TokenState = { state: "idle" };
+import { Button } from "../shared/button";
+import { ErrorDetails } from "../shared/error-details";
+import { useAuth } from "../shared/use-auth";
 
 export const AuthForm: FC = () => {
-  const [token, setToken] = useState<TokenState>(TOKEN_STATE_DEFAULT);
+  const { qCheckAuth, promptAuth } = useAuth();
+  let icon: string;
+  let body: React.ReactNode;
 
-  const getNewToken = async (): Promise<void> => {
-    setToken({ state: "loading" });
-    try {
-      const token = await chrome.identity.getAuthToken({ interactive: true });
-      setToken({ state: "success", data: token });
-    } catch (error) {
-      setToken({ state: "error", error });
+  switch (qCheckAuth.status) {
+    case "pending": {
+      icon = "⏳";
+      body = <p>Loading...</p>;
+      break;
     }
-  };
+    case "error": {
+      icon = "❌";
+      body = (
+        <>
+          <p>ERROR</p>
 
+          <ErrorDetails error={qCheckAuth.error} />
+        </>
+      );
+      break;
+    }
+    case "success": {
+      const auth = qCheckAuth.data;
+      if (auth) {
+        icon = "✅";
+        body = <p className="font-mono">{auth.profile.email}</p>;
+      } else {
+        icon = "⚠️";
+        body = (
+          <Button
+            disabled={promptAuth.isPending}
+            onClick={() => {
+              promptAuth.mutate();
+            }}
+            type="button"
+          >
+            Login
+          </Button>
+        );
+      }
+    }
+  }
   return (
-    <form>
-      <button
-        type="button"
-        disabled={token.state === "loading"}
-        onClick={() => {
-          void getNewToken();
-        }}
-      >
-        Check
-      </button>
-      <pre>{JSON.stringify(token, undefined, 4)}</pre>
-    </form>
+    <section>
+      <h2 className="flex items-center gap-2">
+        <span className="text-lg">Authentication</span>
+
+        {icon ? <span>{icon}</span> : undefined}
+      </h2>
+
+      {body}
+    </section>
   );
 };

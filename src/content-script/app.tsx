@@ -1,7 +1,12 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryCache,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import type { FC } from "react";
 import { createRoot } from "react-dom/client";
 
+import { log } from "../logger";
 import { Badge, type BadgeProps } from "./badge";
 import { DateDisplay } from "./date-display";
 import { DateDisplayObserver } from "./observers";
@@ -16,11 +21,17 @@ const queryClient = new QueryClient({
       retry: false,
     },
   },
+  queryCache: new QueryCache({
+    onError(error, query) {
+      log("error", "[query error]", query.queryKey, error);
+    },
+  }),
 });
 
 const App: FC<BadgeProps> = (props) => {
   return (
     <QueryClientProvider client={queryClient}>
+      {/* eslint-disable-next-line react/jsx-props-no-spreading -- Hush */}
       <Badge {...props} />
     </QueryClientProvider>
   );
@@ -40,7 +51,10 @@ export function renderBadge(
 
   const $link = document.createElement("link");
   $link.setAttribute("rel", "stylesheet");
-  $link.setAttribute("href", chrome.runtime.getURL("dist/content-script.css"));
+  $link.setAttribute(
+    "href",
+    chrome.runtime.getURL("dist/ukg-schedule-sync.css"),
+  );
   shadow.append($link);
 
   const $reactRoot = document.createElement("span");

@@ -18,7 +18,7 @@ class Environment {
     return this.type;
   }
 
-  public canPromptAuth(): boolean {
+  public canUseIdentity(): boolean {
     const type = this.requireType();
     switch (type) {
       case "content-script": {

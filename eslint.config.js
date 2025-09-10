@@ -144,6 +144,8 @@ export default defineConfig(
       "react/jsx-no-bind": "off",
       // Hobby project, no need for translations.
       "react/jsx-no-literals": "off",
+      // Too strict.
+      "react/jsx-props-no-spreading": "off",
       // Conflicts with prettier.
       "react/jsx-one-expression-per-line": "off",
       // Ridiculous.
@@ -154,6 +156,8 @@ export default defineConfig(
       "react/prop-types": "off",
       // Not needed.
       "react/react-in-jsx-scope": "off",
+      // Stop it.
+      "react/sort-comp": "off",
     },
   },
 );

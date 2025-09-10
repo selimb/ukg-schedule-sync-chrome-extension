@@ -108,14 +108,18 @@ async function build(): Promise<void> {
     }
   }
 
-  // tailwind
+  // CSS (Tailwind)
+  // Note that all CSS is bundled into a single file, which is shared by both the content-script and
+  // the options page.
   {
-    const input = "src/content-script/content-script.css";
-    const outputTemp = "tmp/content-script.css";
-    const output = "dist/content-script.css";
+    const filename = "ukg-schedule-sync.css";
+    const input = `src/${filename}`;
+    const outputTemp = `tmp/${filename}`;
+    const output = `dist/${filename}`;
     try {
       await $`node_modules/.bin/tailwindcss -i ${input} -o ${outputTemp}`.quiet();
     } catch (error) {
+      // eslint-disable-next-line no-console -- Hush.
       console.error(error);
       return;
     }

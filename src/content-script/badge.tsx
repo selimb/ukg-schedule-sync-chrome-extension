@@ -1,13 +1,15 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import React, { useRef, useState, useSyncExternalStore } from "react";
 
-import { type AuthInfo, authManager } from "../auth-manager";
 import { log } from "../logger";
+import { Button } from "../shared/button";
+import { useAuth, type UseAuthResult } from "../shared/use-auth";
 import type { NaiveDatetime } from "../types";
 import { DateDisplay } from "./date-display";
 import { Modal, type ModalRef } from "./modal";
 import { DateDisplayObserver } from "./observers";
 import { waitSchedule } from "./parser";
+import { ErrorDetails } from "../shared/error-details";
 
 type UseWaitScheduleResult = ReturnType<typeof useWaitSchedule>;
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Type inference is easier.
@@ -16,35 +18,6 @@ function useWaitSchedule({ month }: { month: string | undefined }) {
     queryKey: ["schedule", month],
     queryFn: waitSchedule,
   });
-}
-
-type UseAuthResult = ReturnType<typeof useAuth>;
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Type inference is easier.
-function useAuth() {
-  const queryClient = useQueryClient();
-  const checkAuthKey = ["check-auth"] as const;
-  type CheckAuthData = AuthInfo | null;
-
-  const qCheckAuth = useQuery({
-    queryKey: checkAuthKey,
-    queryFn: async (): Promise<CheckAuthData> => {
-      const auth = await authManager.checkAuth();
-      console.info("checkAuth", auth);
-      // eslint-disable-next-line unicorn/no-null -- Need null to workaround no-void-query-fn
-      return auth ?? null;
-    },
-  });
-  const promptAuth = useMutation({
-    mutationFn: async () => {
-      console.info("promptAuth...");
-      return await authManager.promptAuth();
-    },
-    onSuccess: (auth) => {
-      queryClient.setQueryData(checkAuthKey, auth satisfies CheckAuthData);
-    },
-  });
-
-  return { qCheckAuth, promptAuth };
 }
 
 type BadgeStatus =
@@ -164,11 +137,7 @@ const AuthenticationDetails: React.FC<UseAuthResult> = ({
     }
     case "error": {
       icon = "❌";
-      body = (
-        <pre className="border whitespace-pre">
-          {JSON.stringify(qCheckAuth.error, undefined, 4)}
-        </pre>
-      );
+      body = <ErrorDetails error={qCheckAuth.error} />;
       break;
     }
     case "success": {
@@ -179,8 +148,7 @@ const AuthenticationDetails: React.FC<UseAuthResult> = ({
       } else {
         icon = "⚠️";
         body = (
-          <button
-            className="cursor-pointer rounded bg-blue-500 px-2 py-1 text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+          <Button
             disabled={promptAuth.isPending}
             onClick={() => {
               promptAuth.mutate();
@@ -188,7 +156,7 @@ const AuthenticationDetails: React.FC<UseAuthResult> = ({
             type="button"
           >
             Login
-          </button>
+          </Button>
         );
       }
       break;
@@ -209,9 +177,7 @@ const AuthenticationDetails: React.FC<UseAuthResult> = ({
         <>
           <h3>Failed to Login</h3>
 
-          <pre className="border whitespace-pre">
-            {JSON.stringify(promptAuth.error, undefined, 4)}
-          </pre>
+          <ErrorDetails error={promptAuth.error} />
         </>
       ) : undefined}
     </div>
@@ -248,11 +214,7 @@ const ScheduleExtractionDetails: React.FC<{
     }
     case "error": {
       icon = "❌";
-      body = (
-        <pre className="border whitespace-pre">
-          {JSON.stringify(qSchedule.error, undefined, 4)}
-        </pre>
-      );
+      body = <ErrorDetails error={qSchedule.error} />;
       break;
     }
     case "success": {
