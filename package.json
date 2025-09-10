@@ -1,5 +1,6 @@
 {
   "name": "ukg-schedule-sync",
+  "version": "1.0",
   "type": "module",
   "scripts": {
     "tsc": "tsc",
