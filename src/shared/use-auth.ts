@@ -13,7 +13,6 @@ export function useAuth() {
     queryKey: checkAuthKey,
     queryFn: async (): Promise<CheckAuthData> => {
       const auth = await authManager.checkAuth();
-      // eslint-disable-next-line unicorn/no-null -- Need null to workaround no-void-query-fn
       return auth ?? null;
     },
   });

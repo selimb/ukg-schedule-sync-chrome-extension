@@ -3,7 +3,7 @@
  */
 import { log } from "../logger";
 import { debug } from "../storage/debug";
-import type { NaiveDate, NaiveTime, Schedule, ScheduleItem } from "../types";
+import type { NaiveDate, NaiveTime, Schedule, ScheduleEvent } from "../types";
 import { waitFor } from "../utils/wait-for";
 
 /** Runs {@link extractSchedule} with retries. */
@@ -11,16 +11,20 @@ export async function waitSchedule(): Promise<Schedule | Error> {
   const schedule = await waitFor(
     () => {
       const schedule = extractSchedule();
-      return schedule.length > 0 ? schedule : undefined;
+      return schedule;
     },
     { intervalMs: 100, abort: AbortSignal.timeout(5000) },
   );
 
   if (schedule) {
     if (debug.get()) {
-      log("debug", `Extracted ${schedule.length} schedule items:`, schedule);
+      log(
+        "debug",
+        `Extracted ${schedule.events.length} schedule events:`,
+        schedule,
+      );
     } else {
-      log("info", `Extracted ${schedule.length} schedule items.`);
+      log("info", `Extracted ${schedule.events.length} schedule events.`);
     }
     return schedule;
   } else {
@@ -33,26 +37,74 @@ export async function waitSchedule(): Promise<Schedule | Error> {
 /**
  * Extracts a schedule from the DOM.
  */
-export function extractSchedule(): Schedule {
+export function extractSchedule(): Schedule | undefined {
   const $scheduleRoot = document.querySelector("krn-calendar");
   if (!$scheduleRoot) {
     log("warn", "No schedule root found.");
-    return [];
+    return undefined;
   }
 
-  const schedule: Schedule = [];
-  for (const $event of $scheduleRoot.querySelectorAll("a.krn-calendar-event")) {
-    const item = parseEvent($event);
-    if (item) {
-      schedule.push(item);
-    }
+  const bounds = extractBounds($scheduleRoot);
+  if (!bounds) {
+    return undefined;
   }
-  schedule.sort((a, b) => a.sortKey - b.sortKey);
 
+  const events = extractEvents($scheduleRoot);
+
+  const schedule: Schedule = {
+    events,
+    bounds,
+  };
   return schedule;
 }
 
-function parseEvent($event: Element): ScheduleItem | undefined {
+function extractBounds($scheduleRoot: Element): Schedule["bounds"] | undefined {
+  const $days = $scheduleRoot.querySelectorAll("td.fc-day");
+  const days: Array<{ date: NaiveDate; sortKey: number }> = [];
+  for (const $day of $days) {
+    const dateString = $day.getAttribute("data-date");
+    if (!dateString) {
+      continue;
+    }
+    const date = parseDateString(dateString);
+    if (!date) {
+      log("warn", "Could not parse day from", dateString);
+      continue;
+    }
+    const timestamp = Date.UTC(date.year, date.month - 1, date.day);
+    days.push({ date, sortKey: timestamp });
+  }
+
+  if (days.length === 0) {
+    log("warn", "No day cells found.");
+    return undefined;
+  }
+  if (days.length === 1) {
+    log("warn", "Only one day cell found.");
+    return undefined;
+  }
+
+  days.sort((a, b) => a.sortKey - b.sortKey);
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- SAFETY: Length checked above.
+  return { start: days[0].date, end: days.at(-1)!.date };
+}
+
+function extractEvents($scheduleRoot: Element): ScheduleEvent[] {
+  const events: ScheduleEvent[] = [];
+  for (const $event of $scheduleRoot.querySelectorAll("a.krn-calendar-event")) {
+    const event = parseEvent($event);
+    if (event) {
+      events.push(event);
+    }
+  }
+
+  // Implement [schedule-sort].
+  events.sort((a, b) => a.sortKey - b.sortKey);
+
+  return events;
+}
+
+function parseEvent($event: Element): ScheduleEvent | undefined {
   const id = $event.id;
   if (!id) {
     return;
@@ -82,7 +134,7 @@ function parseEvent($event: Element): ScheduleItem | undefined {
     return;
   }
 
-  const date = parseDate(dateString);
+  const date = parseDateString(dateString);
   if (!date) {
     log("warn", "Could not parse date from", dateString);
     return;
@@ -117,7 +169,7 @@ function parseEvent($event: Element): ScheduleItem | undefined {
 /**
  * Parses a date string like `2025-09-15`.
  */
-function parseDate(dateText: string): NaiveDate | undefined {
+function parseDateString(dateText: string): NaiveDate | undefined {
   const date = new Date(dateText);
   if (Number.isNaN(date.getTime())) {
     return undefined;

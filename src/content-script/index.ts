@@ -1,6 +1,7 @@
 /** Entrypoint for the Chrome content_script. */
 
 import { setEnvironment } from "../env";
+import { preloadStores } from "../storage";
 import { renderBadge } from "./app";
 import { DateDisplay } from "./date-display";
 import { DateDisplayObserver, DocumentObserver } from "./observers";
@@ -26,8 +27,9 @@ function update(dateDisplay?: DateDisplay): void {
   renderBadge(dateDisplay, dateDisplayObserver);
 }
 
-function main(): void {
+async function main(): Promise<void> {
+  await preloadStores();
   update();
 }
 
-main();
+void main();

@@ -1,5 +1,5 @@
 import { skipToken, useQuery } from "@tanstack/react-query";
-import { type FC, useState } from "react";
+import { type FC, useState, useSyncExternalStore } from "react";
 
 import type { Calendar } from "../lib/google";
 import { Button } from "../shared/button";
@@ -9,13 +9,11 @@ import { useGoogleClient } from "../shared/use-google-client";
 import { calendarStore } from "../storage/calendar";
 
 export const CalendarForm: FC = () => {
-  const qCalendarStore = useQuery({
-    queryKey: ["calendar"],
-    // eslint-disable-next-line unicorn/no-null -- Workaround.
-    queryFn: async () => (await calendarStore.get()) ?? null,
-  });
-
-  const hasCalendar = qCalendarStore.data !== null;
+  const calendar = useSyncExternalStore(
+    calendarStore.listen,
+    calendarStore.get,
+  );
+  const hasCalendar = calendar !== null;
   const calendarListEnabled = !hasCalendar;
 
   const googleClient = useGoogleClient();
@@ -31,21 +29,14 @@ export const CalendarForm: FC = () => {
   let icon: string;
   let body: React.ReactNode;
 
-  if (
-    qCalendarStore.status === "pending" ||
-    (calendarListEnabled && qCalendarList.status === "pending")
-  ) {
+  if (calendarListEnabled && qCalendarList.status === "pending") {
     icon = Icon.loading;
     body = <p>Loading...</p>;
-  } else if (
-    qCalendarStore.status === "error" ||
-    qCalendarList.status === "error"
-  ) {
-    const error = qCalendarStore.error ?? qCalendarList.error;
+  } else if (qCalendarList.status === "error") {
+    const error = qCalendarList.error;
     icon = Icon.error;
     body = <ErrorDetails error={error} />;
   } else {
-    const calendar = qCalendarStore.data;
     if (calendar === null) {
       icon = Icon.warning;
 
@@ -57,7 +48,6 @@ export const CalendarForm: FC = () => {
           calendars={qCalendarList.data ?? []}
           onSubmit={(calendar) => {
             void calendarStore.set(calendar);
-            void qCalendarStore.refetch();
           }}
         />
       );
@@ -69,8 +59,7 @@ export const CalendarForm: FC = () => {
 
           <Button
             onClick={() => {
-              void calendarStore.reset();
-              void qCalendarStore.refetch();
+              void calendarStore.set(null);
             }}
             type="button"
           >

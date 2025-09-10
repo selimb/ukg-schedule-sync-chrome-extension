@@ -1,3 +1,5 @@
+export type MonthString = string;
+
 export type NaiveDate = {
   year: number;
   month: number; // 1-12
@@ -11,12 +13,21 @@ export type NaiveTime = {
 
 export type NaiveDatetime = NaiveDate & NaiveTime;
 
-export type ScheduleItem = {
+export type ScheduleEvent = {
   id: string;
   start: NaiveDatetime;
   end: NaiveDatetime;
-  /** Only used for sorting */
+  /** Timestamp, only used for sorting. */
   sortKey: number;
 };
 
-export type Schedule = ScheduleItem[];
+export type Schedule = {
+  /**
+   * [schedule-sort] The events are always ordered by start time.
+   */
+  events: ScheduleEvent[];
+  bounds: {
+    start: NaiveDate;
+    end: NaiveDate;
+  };
+};

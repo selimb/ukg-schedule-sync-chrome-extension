@@ -1,6 +1,7 @@
 import * as z from "zod/mini";
 
 import type { AuthInfo } from "./auth-manager";
+import type { SyncCalendarResult } from "./lib/sync";
 import { log } from "./logger";
 import type { Schedule } from "./types";
 
@@ -66,7 +67,9 @@ export const channels = {
   checkAuth: mkChannel<undefined, { auth: AuthInfo | undefined }>("check-auth"),
   promptAuth: mkChannel<undefined, { auth: AuthInfo }>("prompt-auth"),
   openOptionsPage: mkChannel<undefined, undefined>("open-options-page"),
-  syncCalendar: mkChannel<{ schedule: Schedule }, undefined>("sync-calendar"),
+  syncCalendar: mkChannel<{ schedule: Schedule }, SyncCalendarResult>(
+    "sync-calendar",
+  ),
 };
 
 const channelKeyByType = Object.fromEntries(

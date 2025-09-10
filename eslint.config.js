@@ -115,6 +115,8 @@ export default defineConfig(
       "unicorn/prefer-query-selector": "off",
       // Conflicts with prettier.
       "unicorn/no-nested-ternary": "off",
+      // There are valid use-cases for null.
+      "unicorn/no-null": "off",
       // Too many false positives.
       "unicorn/no-useless-undefined": "off",
       "unicorn/template-indent": [

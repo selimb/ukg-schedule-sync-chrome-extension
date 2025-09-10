@@ -1,10 +1,14 @@
 import * as z from "zod/mini";
 
+import { log } from "../logger";
+import { debug } from "../storage/debug";
+
 const BASE_URL = new URL("https://www.googleapis.com");
 
 type RequestOptions = {
   method: "GET" | "POST" | "PUT" | "DELETE";
   path: string;
+  query?: URLSearchParams;
 };
 
 type RequestInfo = {
@@ -60,6 +64,19 @@ export const zCalendar = z.object({
 });
 export type Calendar = z.infer<typeof zCalendar>;
 
+export const zCalendarEvent = z.object({
+  id: z.string(),
+  start: z.object({
+    dateTime: z.string(),
+    timeZone: z.nullish(z.string()),
+  }),
+  end: z.object({
+    dateTime: z.string(),
+    timeZone: z.nullish(z.string()),
+  }),
+});
+export type CalendarEvent = z.infer<typeof zCalendarEvent>;
+
 export class GoogleClient {
   public readonly token: string;
 
@@ -68,12 +85,22 @@ export class GoogleClient {
   }
 
   async request(options: RequestOptions): Promise<Response> {
-    const { method, path, ..._rest } = options;
+    const { method, path, query, ..._rest } = options;
     const _exhaustiveCheck: Required<typeof _rest> = {};
 
     const url = new URL(path, BASE_URL);
+    if (query) {
+      url.search = query.toString();
+    }
+
     const headers = {
       Authorization: `Bearer ${this.token}`,
+    };
+
+    const requestInfo: RequestInfo = {
+      url: url.toString(),
+      method,
+      headers,
     };
 
     const resp = await fetch(url, {
@@ -82,19 +109,19 @@ export class GoogleClient {
     });
 
     if (!resp.ok) {
-      const requestInfo: RequestInfo = {
-        url: url.toString(),
-        method,
-        headers,
-      };
       const error = await RequestError.fromResponse(requestInfo, resp);
       throw error;
+    }
+
+    if (debug.get()) {
+      log("debug", "GoogleClient.request", requestInfo, resp.status);
     }
 
     return resp;
   }
 
   async listCalendars(): Promise<Calendar[]> {
+    // TODO [pagination] In practice we probably won't have enough calendars though.
     const resp = await this.request({
       method: "GET",
       path: "calendar/v3/users/me/calendarList",
@@ -102,6 +129,35 @@ export class GoogleClient {
     const data: unknown = await resp.json();
     const schema = z.object({
       items: z.array(zCalendar),
+    });
+    const parsed = schema.parse(data);
+    return parsed.items;
+  }
+
+  async listEvents(input: {
+    calendarId: Calendar["id"];
+    min: Date;
+    max: Date;
+  }): Promise<unknown[]> {
+    const { calendarId, min, max } = input;
+
+    const query = new URLSearchParams({
+      timeMin: min.toISOString(),
+      timeMax: max.toISOString(),
+      singleEvents: "true",
+      orderBy: "startTime",
+    });
+
+    // TODO [pagination] The default page size is 250, which is more than enough.
+    const path = `calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`;
+    const resp = await this.request({
+      method: "GET",
+      path,
+      query,
+    });
+    const data: unknown = await resp.json();
+    const schema = z.object({
+      items: z.array(zCalendarEvent),
     });
     const parsed = schema.parse(data);
     return parsed.items;

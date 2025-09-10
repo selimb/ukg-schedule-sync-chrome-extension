@@ -24,7 +24,7 @@ type BadgeStatus =
     }
   | {
       type: "warning";
-      reason: "need-auth" | "need-calendar";
+      reason: "need-auth" | "need-calendar" | "should-sync";
     }
   | {
       type: "error";
@@ -37,36 +37,45 @@ type BadgeStatus =
 function computeBadgeStatus(
   qSchedule: UseWaitScheduleResult,
   qCheckAuth: UseAuthResult["qCheckAuth"],
-  qCalendarStore: UseCalendarStoreResult,
   qSyncCalendar: ReturnType<typeof useSyncCalendar>,
+  calendar: UseCalendarStoreResult,
 ): BadgeStatus {
   if (
     qSchedule.status === "error" ||
     qCheckAuth.status === "error" ||
-    qCalendarStore.status === "error" ||
     qSyncCalendar.status === "error"
   ) {
     return { type: "error" };
   }
-  if (
-    qSchedule.status === "pending" ||
-    qCheckAuth.status === "pending" ||
-    qCalendarStore.status === "pending"
-  ) {
+  if (qSchedule.status === "pending" || qCheckAuth.status === "pending") {
     return { type: "loading" };
   }
   const hasToken = qCheckAuth.data !== null;
   if (!hasToken) {
     return { type: "warning", reason: "need-auth" };
   }
-  const hasCalendar = qCalendarStore.data !== null;
+  const hasCalendar = calendar !== null;
   if (!hasCalendar) {
     return { type: "warning", reason: "need-calendar" };
   }
 
-  return qSyncCalendar.status === "pending"
-    ? { type: "syncing" }
-    : { type: "ok" };
+  switch (qSyncCalendar.status) {
+    case "pending": {
+      return { type: "loading" };
+    }
+    // Should never happen?
+    case "idle":
+    case "should-sync": {
+      return { type: "warning", reason: "should-sync" };
+    }
+    case "cache-hit":
+    case "synced": {
+      return { type: "ok" };
+    }
+    case "syncing": {
+      return { type: "syncing" };
+    }
+  }
 }
 
 function getIconProps(status: BadgeStatus): { title: string; icon: string } {
@@ -81,6 +90,9 @@ function getIconProps(status: BadgeStatus): { title: string; icon: string } {
         }
         case "need-calendar": {
           return { title: "Calendar not set", icon: Icon.warning };
+        }
+        case "should-sync": {
+          return { title: "Should sync", icon: Icon.warning };
         }
       }
       break;
@@ -114,16 +126,20 @@ export const Badge: React.FC<BadgeProps> = ({
 
   const { qCheckAuth, promptAuth } = useAuth();
   const qSchedule = useWaitSchedule({ month });
-  const qCalendarStore = useCalendarStore();
+  const calendar = useCalendarStore();
   const schedule: Schedule | undefined =
     qSchedule.data instanceof Error ? undefined : qSchedule.data;
-  const qSyncCalendar = useSyncCalendar({ month, schedule });
+  const qSyncCalendar = useSyncCalendar({
+    month,
+    schedule,
+    calendarId: calendar?.id,
+  });
 
   const status = computeBadgeStatus(
     qSchedule,
     qCheckAuth,
-    qCalendarStore,
     qSyncCalendar,
+    calendar,
   );
   const iconProps = getIconProps(status);
 
@@ -149,7 +165,7 @@ export const Badge: React.FC<BadgeProps> = ({
 
           <ScheduleExtractionDetails qSchedule={qSchedule} />
 
-          <CalendarStoreDetails qCalendarStore={qCalendarStore} />
+          <CalendarStoreDetails calendar={calendar} />
 
           <SyncDetails qSyncCalendar={qSyncCalendar} />
         </div>

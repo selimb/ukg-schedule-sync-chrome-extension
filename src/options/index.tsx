@@ -8,6 +8,7 @@ import { createRoot } from "react-dom/client";
 
 import { setEnvironment } from "../env";
 import { log } from "../logger";
+import { preloadStores } from "../storage";
 import { AuthForm } from "./auth-form";
 import { CalendarForm } from "./calendar-form";
 import { DebugForm } from "./debug-form";
@@ -67,14 +68,20 @@ class App extends Component {
   }
 }
 
-const container = document.getElementById("root");
-if (container) {
-  const reactRoot = createRoot(container);
-  reactRoot.render(
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>,
-  );
-} else {
-  alert("No root container found.");
+async function main(): Promise<void> {
+  await preloadStores();
+
+  const container = document.getElementById("root");
+  if (container) {
+    const reactRoot = createRoot(container);
+    reactRoot.render(
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>,
+    );
+  } else {
+    alert("No root container found.");
+  }
 }
+
+void main();

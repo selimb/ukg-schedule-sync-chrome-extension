@@ -1,6 +1,9 @@
 import { authManager } from "./auth-manager";
 import { listenChannels } from "./channels";
 import { setEnvironment } from "./env";
+import { GoogleClient } from "./lib/google";
+import { syncCalendar as doSyncCalendar } from "./lib/sync";
+import { calendarStore } from "./storage/calendar";
 
 setEnvironment("service-worker");
 
@@ -17,8 +20,22 @@ listenChannels({
     await chrome.runtime.openOptionsPage();
   },
   syncCalendar: async function syncCalendar({ schedule }) {
-    // XXX
-    throw new Error("Not implemented");
+    const auth = await authManager.checkAuth();
+    if (!auth?.token.token) {
+      throw new Error("Missing authentication.");
+    }
+    const ooogleClient = new GoogleClient(auth.token.token);
+
+    const calendar = calendarStore.get();
+    if (!calendar) {
+      throw new Error("Missing calendar in store.");
+    }
+
+    return await doSyncCalendar({
+      calendarId: calendar.id,
+      googleClient: ooogleClient,
+      schedule,
+    });
   },
 });
 chrome.action.onClicked.addListener(() => {

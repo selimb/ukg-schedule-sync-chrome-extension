@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { log } from "../logger";
 import { ErrorDetails } from "../shared/error-details";
 import { Icon } from "../shared/icons";
-import type { NaiveDatetime } from "../types";
+import type { NaiveDate, NaiveDatetime } from "../types";
 import type { UseWaitScheduleResult } from "./hooks";
 
 export const ScheduleExtractionDetails: React.FC<{
@@ -42,7 +42,7 @@ export const ScheduleExtractionDetails: React.FC<{
                 className="cursor-pointer underline"
                 onClick={() => {
                   if (!expand) {
-                    const formatted = schedule
+                    const formatted = schedule.events
                       .map((item) => {
                         const start = dateToDateTimeString(item.start);
                         const end = dateToDateTimeString(item.end);
@@ -55,16 +55,22 @@ export const ScheduleExtractionDetails: React.FC<{
                 }}
                 type="button"
               >
-                {schedule.length}
+                {schedule.events.length}
               </button>
 
-              {" events."}
+              {" events from "}
+
+              <span>{dateToDateString(schedule.bounds.start)}</span>
+
+              {" to "}
+
+              <span>{dateToDateString(schedule.bounds.start)}</span>
             </p>
 
             {expand ? (
               <table className="w-full table-auto">
                 <tbody>
-                  {schedule.map((item) => (
+                  {schedule.events.map((item) => (
                     <tr className="font-mono" key={item.id}>
                       <td>{item.id}</td>
 
@@ -100,6 +106,13 @@ export const ScheduleExtractionDetails: React.FC<{
     </div>
   );
 };
+
+function dateToDateString(date: NaiveDate): string {
+  const year = date.year.toString();
+  const month = date.month.toString().padStart(2, "0");
+  const day = date.day.toString().padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 /**
  * Returns `date` as a YYYY-MM-DD HH:MM` string.

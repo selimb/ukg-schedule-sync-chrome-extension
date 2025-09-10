@@ -1,3 +1,5 @@
+import type { MonthString } from "../types";
+
 /** Wraps the date display element. */
 export class DateDisplay {
   public readonly $element: Element;
@@ -11,7 +13,7 @@ export class DateDisplay {
     return $elem ? new DateDisplay($elem) : undefined;
   }
 
-  getMonth = (): string | undefined => {
+  getMonth = (): MonthString | undefined => {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- False positive...
     const text = this.$element.textContent?.trim();
     return text || undefined;
