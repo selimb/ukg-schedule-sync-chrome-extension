@@ -38,11 +38,13 @@ function computeBadgeStatus(
   qSchedule: UseWaitScheduleResult,
   qCheckAuth: UseAuthResult["qCheckAuth"],
   qCalendarStore: UseCalendarStoreResult,
+  qSyncCalendar: ReturnType<typeof useSyncCalendar>,
 ): BadgeStatus {
   if (
     qSchedule.status === "error" ||
     qCheckAuth.status === "error" ||
-    qCalendarStore.status === "error"
+    qCalendarStore.status === "error" ||
+    qSyncCalendar.status === "error"
   ) {
     return { type: "error" };
   }
@@ -61,8 +63,10 @@ function computeBadgeStatus(
   if (!hasCalendar) {
     return { type: "warning", reason: "need-calendar" };
   }
-  // XXX handle syncing
-  return { type: "ok" };
+
+  return qSyncCalendar.status === "pending"
+    ? { type: "syncing" }
+    : { type: "ok" };
 }
 
 function getIconProps(status: BadgeStatus): { title: string; icon: string } {
@@ -115,7 +119,12 @@ export const Badge: React.FC<BadgeProps> = ({
     qSchedule.data instanceof Error ? undefined : qSchedule.data;
   const qSyncCalendar = useSyncCalendar({ month, schedule });
 
-  const status = computeBadgeStatus(qSchedule, qCheckAuth, qCalendarStore);
+  const status = computeBadgeStatus(
+    qSchedule,
+    qCheckAuth,
+    qCalendarStore,
+    qSyncCalendar,
+  );
   const iconProps = getIconProps(status);
 
   return (
