@@ -4,6 +4,7 @@ import { type FC, useState } from "react";
 import type { Calendar } from "../lib/google";
 import { Button } from "../shared/button";
 import { ErrorDetails } from "../shared/error-details";
+import { Icon } from "../shared/icons";
 import { useGoogleClient } from "../shared/use-google-client";
 import { calendarStore } from "../storage/calendar";
 
@@ -34,19 +35,19 @@ export const CalendarForm: FC = () => {
     qCalendarStore.status === "pending" ||
     (calendarListEnabled && qCalendarList.status === "pending")
   ) {
-    icon = "⏳";
+    icon = Icon.loading;
     body = <p>Loading...</p>;
   } else if (
     qCalendarStore.status === "error" ||
     qCalendarList.status === "error"
   ) {
     const error = qCalendarStore.error ?? qCalendarList.error;
-    icon = "❌";
+    icon = Icon.error;
     body = <ErrorDetails error={error} />;
   } else {
     const calendar = qCalendarStore.data;
     if (calendar === null) {
-      icon = "⚠️";
+      icon = Icon.warning;
 
       body = (
         <CalendarPicker
@@ -61,7 +62,7 @@ export const CalendarForm: FC = () => {
         />
       );
     } else {
-      icon = "✅";
+      icon = Icon.ok;
       body = (
         <>
           <p className="font-mono">{calendar.summary}</p>

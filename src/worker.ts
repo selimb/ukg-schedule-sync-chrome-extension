@@ -16,6 +16,10 @@ listenChannels({
   openOptionsPage: async function openOptionsPage() {
     await chrome.runtime.openOptionsPage();
   },
+  syncCalendar: async function syncCalendar({ schedule }) {
+    // XXX
+    throw new Error("Not implemented");
+  },
 });
 chrome.action.onClicked.addListener(() => {
   void chrome.runtime.openOptionsPage();

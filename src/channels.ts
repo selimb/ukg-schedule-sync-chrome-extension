@@ -2,6 +2,7 @@ import * as z from "zod/mini";
 
 import type { AuthInfo } from "./auth-manager";
 import { log } from "./logger";
+import type { Schedule } from "./types";
 
 type MessageType = string;
 type IMessage = Record<string, unknown> | undefined;
@@ -65,6 +66,7 @@ export const channels = {
   checkAuth: mkChannel<undefined, { auth: AuthInfo | undefined }>("check-auth"),
   promptAuth: mkChannel<undefined, { auth: AuthInfo }>("prompt-auth"),
   openOptionsPage: mkChannel<undefined, undefined>("open-options-page"),
+  syncCalendar: mkChannel<{ schedule: Schedule }, undefined>("sync-calendar"),
 };
 
 const channelKeyByType = Object.fromEntries(
@@ -117,7 +119,7 @@ export function listenChannels(handlers: ChannelHandlers): void {
     }
     const req = envelope.data as Channels[typeof key]["_input"];
     // Can't use `await` here.
-    fn(req).then(
+    fn(req as never).then(
       (result) => {
         sendResponse({
           success: true,
