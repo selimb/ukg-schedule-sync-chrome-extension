@@ -15,13 +15,14 @@ export const CalendarForm: FC = () => {
   });
 
   const hasCalendar = qCalendarStore.data !== null;
+  const calendarListEnabled = !hasCalendar;
 
   const googleClient = useGoogleClient();
 
   const qCalendarList = useQuery({
     queryKey: ["calendar-list"],
     queryFn:
-      googleClient && !hasCalendar
+      googleClient && calendarListEnabled
         ? async () => await googleClient.listCalendars()
         : skipToken,
   });
@@ -31,7 +32,7 @@ export const CalendarForm: FC = () => {
 
   if (
     qCalendarStore.status === "pending" ||
-    qCalendarList.status === "pending"
+    (calendarListEnabled && qCalendarList.status === "pending")
   ) {
     icon = "⏳";
     body = <p>Loading...</p>;
@@ -49,7 +50,10 @@ export const CalendarForm: FC = () => {
 
       body = (
         <CalendarPicker
-          calendars={qCalendarList.data}
+          // SAFETY: qCalendarList.data should always be defined at this point.
+          //   Typescript doesn't think so because of `calendarListEnabled`, but
+          //  `calendarListEnabled` will always be true if `calendar` is null.
+          calendars={qCalendarList.data ?? []}
           onSubmit={(calendar) => {
             void calendarStore.set(calendar);
             void qCalendarStore.refetch();

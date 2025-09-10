@@ -13,7 +13,6 @@ export async function waitFor<T>(
     const interval = setInterval(() => {
       if (abort.aborted) {
         clearInterval(interval);
-        // eslint-disable-next-line unicorn/no-useless-undefined -- Necessary.
         resolve(undefined);
         return;
       }
@@ -32,7 +31,6 @@ export async function waitFor<T>(
 
     abort.addEventListener("abort", () => {
       clearInterval(interval);
-      // eslint-disable-next-line unicorn/no-useless-undefined -- Necessary.
       resolve(undefined);
     });
   });

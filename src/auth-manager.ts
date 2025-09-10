@@ -2,9 +2,6 @@ import { channels } from "./channels";
 import { env } from "./env";
 import { asyncDedup } from "./utils/async-dedup";
 
-// XXX delete?
-type AuthManagerStatus = "initial" | "need-token" | "ready";
-
 /** Authentication token and profile details. */
 export type AuthInfo = {
   token: chrome.identity.GetAuthTokenResult;
@@ -29,7 +26,6 @@ async function checkCachedToken(): Promise<
 export class AuthManager {
   /** This token is guaranteed to be valid. */
   private _authInfo: AuthInfo | undefined;
-  private _status: AuthManagerStatus = "initial";
 
   constructor() {
     this.checkAuth = asyncDedup(this.checkAuth.bind(this));
@@ -40,10 +36,6 @@ export class AuthManager {
     return this._authInfo;
   }
 
-  get status(): AuthManagerStatus {
-    return this._status;
-  }
-
   /**
    * Invalidates the current token, if any.
    * This should be used if the token is known to be invalid, e.g., if a request using the token
@@ -51,7 +43,6 @@ export class AuthManager {
    */
   invalidateAuth(): void {
     this._authInfo = undefined;
-    this._status = "need-token";
   }
 
   async checkAuth(): Promise<AuthInfo | undefined> {
@@ -63,12 +54,10 @@ export class AuthManager {
         auth = { token, profile };
       }
     } else {
-      // eslint-disable-next-line unicorn/no-useless-undefined -- No choice.
       const resp = await channels.checkAuth.send(undefined);
       auth = resp.auth;
     }
     this._authInfo = auth;
-    this._status = "ready";
     return this._authInfo;
   }
 
@@ -79,12 +68,10 @@ export class AuthManager {
       const profile = await chrome.identity.getProfileUserInfo();
       auth = { token, profile };
     } else {
-      // eslint-disable-next-line unicorn/no-useless-undefined -- No choice.
       const resp = await channels.promptAuth.send(undefined);
       auth = resp.auth;
     }
     this._authInfo = auth;
-    this._status = "ready";
     return this._authInfo;
   }
 }

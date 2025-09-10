@@ -64,6 +64,7 @@ function mkChannel<I extends IMessage, O extends IMessage>(
 export const channels = {
   checkAuth: mkChannel<undefined, { auth: AuthInfo | undefined }>("check-auth"),
   promptAuth: mkChannel<undefined, { auth: AuthInfo }>("prompt-auth"),
+  openOptionsPage: mkChannel<undefined, undefined>("open-options-page"),
 };
 
 const channelKeyByType = Object.fromEntries(

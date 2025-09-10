@@ -1,15 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import React, { useRef, useState, useSyncExternalStore } from "react";
 
+import { channels } from "../channels";
 import { log } from "../logger";
 import { Button } from "../shared/button";
+import { ErrorDetails } from "../shared/error-details";
 import { useAuth, type UseAuthResult } from "../shared/use-auth";
+import { calendarStore } from "../storage/calendar";
 import type { NaiveDatetime } from "../types";
 import { DateDisplay } from "./date-display";
 import { Modal, type ModalRef } from "./modal";
 import { DateDisplayObserver } from "./observers";
 import { waitSchedule } from "./parser";
-import { ErrorDetails } from "../shared/error-details";
 
 type UseWaitScheduleResult = ReturnType<typeof useWaitSchedule>;
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Type inference is easier.
@@ -20,13 +22,23 @@ function useWaitSchedule({ month }: { month: string | undefined }) {
   });
 }
 
+type UseCalendarStoreResult = ReturnType<typeof useCalendarStore>;
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Type inference is easier.
+function useCalendarStore() {
+  return useQuery({
+    queryKey: ["calendar"],
+    // eslint-disable-next-line unicorn/no-null -- Workaround.
+    queryFn: async () => (await calendarStore.get()) ?? null,
+  });
+}
+
 type BadgeStatus =
   | {
       type: "loading";
     }
   | {
       type: "warning";
-      reason: "need-auth";
+      reason: "need-auth" | "need-calendar";
     }
   | {
       type: "error";
@@ -39,16 +51,29 @@ type BadgeStatus =
 function computeBadgeStatus(
   qSchedule: UseWaitScheduleResult,
   qCheckAuth: UseAuthResult["qCheckAuth"],
+  qCalendarStore: UseCalendarStoreResult,
 ): BadgeStatus {
-  if (qSchedule.status === "error" || qCheckAuth.status === "error") {
+  if (
+    qSchedule.status === "error" ||
+    qCheckAuth.status === "error" ||
+    qCalendarStore.status === "error"
+  ) {
     return { type: "error" };
   }
-  if (qSchedule.status === "pending" || qCheckAuth.status === "pending") {
+  if (
+    qSchedule.status === "pending" ||
+    qCheckAuth.status === "pending" ||
+    qCalendarStore.status === "pending"
+  ) {
     return { type: "loading" };
   }
   const hasToken = qCheckAuth.data !== null;
   if (!hasToken) {
     return { type: "warning", reason: "need-auth" };
+  }
+  const hasCalendar = qCalendarStore.data !== null;
+  if (!hasCalendar) {
+    return { type: "warning", reason: "need-calendar" };
   }
   // XXX handle syncing
   return { type: "ok" };
@@ -60,7 +85,15 @@ function getIconProps(status: BadgeStatus): { title: string; icon: string } {
       return { title: "Loading...", icon: "⏳" };
     }
     case "warning": {
-      return { title: "Authentication required", icon: "⚠️" };
+      switch (status.reason) {
+        case "need-auth": {
+          return { title: "Authentication required", icon: "⚠️" };
+        }
+        case "need-calendar": {
+          return { title: "Calendar not set", icon: "⚠️" };
+        }
+      }
+      break;
     }
     case "error": {
       return { title: "Error", icon: "❌" };
@@ -89,10 +122,11 @@ export const Badge: React.FC<BadgeProps> = ({
   );
   const badgeDialogRef = useRef<ModalRef>(null);
 
-  const qSchedule = useWaitSchedule({ month });
   const { qCheckAuth, promptAuth } = useAuth();
+  const qSchedule = useWaitSchedule({ month });
+  const qCalendarStore = useCalendarStore();
 
-  const status = computeBadgeStatus(qSchedule, qCheckAuth);
+  const status = computeBadgeStatus(qSchedule, qCheckAuth, qCalendarStore);
   const iconProps = getIconProps(status);
 
   return (
@@ -116,6 +150,8 @@ export const Badge: React.FC<BadgeProps> = ({
           />
 
           <ScheduleExtractionDetails qSchedule={qSchedule} />
+
+          <CalendarStoreDetails qCalendarStore={qCalendarStore} />
         </div>
       </Modal>
     </>
@@ -285,6 +321,65 @@ const ScheduleExtractionDetails: React.FC<{
         <span className="text-lg">Schedule Extraction</span>
 
         <span>{icon}</span>
+      </h2>
+
+      {body}
+    </div>
+  );
+};
+
+const CalendarStoreDetails: React.FC<{
+  readonly qCalendarStore: UseCalendarStoreResult;
+}> = ({ qCalendarStore }) => {
+  let icon: string | undefined;
+  let body: React.ReactNode;
+
+  switch (qCalendarStore.status) {
+    case "pending": {
+      icon = "⏳";
+      body = <p>Loading...</p>;
+      break;
+    }
+    case "error": {
+      icon = "❌";
+      body = <ErrorDetails error={qCalendarStore.error} />;
+      break;
+    }
+    case "success": {
+      const calendar = qCalendarStore.data;
+      const button = (
+        <Button
+          onClick={() => {
+            void channels.openOptionsPage.send(undefined);
+          }}
+          type="button"
+        >
+          Configure
+        </Button>
+      );
+      if (calendar === null) {
+        icon = "⚠️";
+        body = button;
+      } else {
+        icon = "✅";
+        body = (
+          <>
+            <p className="font-mono">{calendar.summary}</p>
+
+            {button}
+          </>
+        );
+      }
+      break;
+    }
+  }
+
+  return (
+    <div>
+      <h2 className="flex items-center gap-2">
+        <span className="text-lg">Calendar</span>
+
+        {icon ? <span>{icon}</span> : undefined}
       </h2>
 
       {body}

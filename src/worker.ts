@@ -13,6 +13,9 @@ listenChannels({
     const auth = await authManager.promptAuth();
     return { auth };
   },
+  openOptionsPage: async function openOptionsPage() {
+    await chrome.runtime.openOptionsPage();
+  },
 });
 chrome.action.onClicked.addListener(() => {
   void chrome.runtime.openOptionsPage();
