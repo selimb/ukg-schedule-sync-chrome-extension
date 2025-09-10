@@ -31,7 +31,6 @@ const queryClient = new QueryClient({
 const App: FC<BadgeProps> = (props) => {
   return (
     <QueryClientProvider client={queryClient}>
-      {/* eslint-disable-next-line react/jsx-props-no-spreading -- Hush */}
       <Badge {...props} />
     </QueryClientProvider>
   );

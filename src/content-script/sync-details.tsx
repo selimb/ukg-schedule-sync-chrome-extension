@@ -28,9 +28,10 @@ export const SyncDetails: React.FC<{
       icon = Icon.syncing;
       break;
     }
+    case "should-sync":
     case "cache-hit":
     case "synced": {
-      icon = Icon.ok;
+      icon = qSyncCalendar.status === "should-sync" ? Icon.warning : Icon.ok;
       const syncedOn =
         qSyncCalendar.status === "synced"
           ? "just now"

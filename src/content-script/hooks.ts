@@ -24,6 +24,8 @@ export function useCalendarStore() {
   return useSyncExternalStore(calendarStore.listen, calendarStore.get);
 }
 
+type Resync = () => Promise<void>;
+
 export type UseSyncCalendarResult =
   | {
       status: "idle";
@@ -39,14 +41,18 @@ export type UseSyncCalendarResult =
       status: "cache-hit";
       /** `undefined` should never happen. */
       lastSyncOn: Date | undefined;
-      resync: () => Promise<void>;
+      resync: Resync;
     }
-  | { status: "should-sync"; lastSyncOn: Date | undefined }
+  | {
+      status: "should-sync";
+      lastSyncOn: Date | undefined;
+      resync: Resync;
+    }
   | { status: "syncing" }
   | {
       status: "synced";
       lastSyncOn: Date;
-      resync: () => Promise<void>;
+      resync: Resync;
     };
 
 export function useSyncCalendar({
@@ -138,7 +144,7 @@ export function useSyncCalendar({
   }
 
   // In theory we should only reach here if `autoSync` is off.
-  return { status: "should-sync", lastSyncOn };
+  return { status: "should-sync", lastSyncOn, resync };
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Type inference is easier.
